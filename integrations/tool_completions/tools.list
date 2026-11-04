@@ -1,0 +1,18 @@
+# Tools whose completion oh-my-818 generates when nothing else provides it ({shell}: zsh or bash).
+#
+# name     command printing the completion (its first word must be installed too)
+gh         gh completion -s {shell}
+rg         rg --generate complete-{shell}
+fd         fd --gen-completions {shell}
+uv         uv generate-shell-completion {shell}
+uvx        uvx --generate-shell-completion {shell}
+rustup     rustup completions {shell}
+cargo      rustup completions {shell} cargo
+mise       mise completion {shell}
+op         op completion {shell}
+podman     podman completion {shell}
+docker     docker completion {shell}
+kubectl    kubectl completion {shell}
+helm       helm completion {shell}
+just       just --completions {shell}
+deno       deno completions {shell}

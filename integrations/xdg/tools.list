@@ -1,0 +1,12 @@
+# Tools that keep a dot-folder in HOME unless told otherwise (source: Arch wiki, "XDG Base
+# Directory"). Only tools that don't already follow XDG by default belong here. bin: a folder of
+# the new location to put on PATH ("-": none), where the tool installs commands.
+#
+# tool   variable          value                     old location  bin
+cargo    CARGO_HOME        $XDG_DATA_HOME/cargo      ~/.cargo      $XDG_DATA_HOME/cargo/bin
+rustup   RUSTUP_HOME       $XDG_DATA_HOME/rustup     ~/.rustup     -
+go       GOPATH            $XDG_DATA_HOME/go         ~/go          $XDG_DATA_HOME/go/bin
+go       GOMODCACHE        $XDG_CACHE_HOME/go/mod    ~/go          -
+gradle   GRADLE_USER_HOME  $XDG_DATA_HOME/gradle     ~/.gradle     -
+npm      npm_config_cache  $XDG_CACHE_HOME/npm       ~/.npm        -
+docker   DOCKER_CONFIG     $XDG_CONFIG_HOME/docker   ~/.docker     -

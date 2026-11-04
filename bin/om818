@@ -1,0 +1,431 @@
+#!/bin/sh
+set -eu
+
+# oh-my-818's command. POSIX sh (plus `local`): it runs before zsh is set up, and with any sh
+# (dash, macOS's bash 3.2 in sh mode). It reads the config through zsh, or bash 4.4+.
+
+usage() {
+  cat <<EOF
+usage: om818 <command>
+
+Commands:
+  status     what is set up and what isn't (share it when asking for help)
+  update     update to the latest release
+  rollback   go back to the release before the last update
+  env        regenerate the environment after installing a tool (changes to your files only
+             need a new terminal)
+  install    repair the setup: startup files, environment, history, git status helper (updates
+             run it too)
+  uninstall  remove oh-my-818 and its startup file lines; your files and history kept
+  version    print the installed version
+  help       show this help
+
+Your files, in $(tilde "$OM818_CONFIG_DIR")/:
+  config.sh  your settings (create it): copy the lines to change from
+             $(tilde "${OM818_DIR}/defaults.sh"), which lists them all
+  env.d/     your variables and PATH, for every program: *.sh, in sh syntax
+  shell.d/   your aliases, functions, key bindings: *.sh (zsh and bash), *.zsh, *.bash
+
+Docs: $(docs_url docs)
+EOF
+}
+
+main() {
+  local self link arg dir
+  # Exported by tools like vcsh, yadm or git hooks, these would point git at another repository
+  unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY \
+    GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_COMMON_DIR GIT_NAMESPACE
+  # Its folder, found through links to this file (e.g. ~/bin/om818)
+  self="$0"
+  while [ -L "$self" ]; do
+    link="$(ls -l -- "$self")"
+    link="${link#* -> }"
+    case "$link" in /*) self="$link" ;; *) self="$(dirname -- "$self")/${link}" ;; esac
+  done
+  # As a logical path, like HOME, so that messages show ~ (CDPATH='': else cd prints the folder)
+  OM818_DIR="$(CDPATH='' cd -- "$(dirname -- "$self")/.." && pwd)"
+  # Through a link to bin/ itself: the physical one
+  if [ ! -f "${OM818_DIR}/lib/common.sh" ]; then
+    OM818_DIR="$(CDPATH='' cd -- "$(dirname -- "$self")" && cd -P . && cd .. && pwd)"
+  fi
+  # shellcheck source=../lib/common.sh
+  . "${OM818_DIR}/lib/common.sh"
+  # shellcheck source=../lib/integrations.sh
+  . "${OM818_DIR}/lib/integrations.sh"
+  # shellcheck source=../lib/startup-files.sh
+  . "${OM818_DIR}/lib/startup-files.sh"
+  # shellcheck source=../lib/release.sh
+  . "${OM818_DIR}/lib/release.sh"
+  # shellcheck source=../lib/status.sh
+  . "${OM818_DIR}/lib/status.sh"
+  # shellcheck source=../lib/uninstall.sh
+  . "${OM818_DIR}/lib/uninstall.sh"
+  # shellcheck source=../modules/env/generate.sh
+  . "${OM818_DIR}/modules/env/generate.sh"
+
+  # Tools are looked for where a login shell finds them, which the shell running the installer
+  # (e.g. from curl) may not: mise's default folder, Homebrew's
+  for dir in "${HOME}/.local/bin" /opt/homebrew/bin /home/linuxbrew/.linuxbrew/bin; do
+    if [ -d "$dir" ] && trusted_path "$dir"; then
+      case ":${PATH}:" in *":${dir}:"*) ;; *) PATH="${PATH}:${dir}" ;; esac
+    fi
+  done
+
+  # (dash runs no EXIT trap on a signal: exit through it)
+  trap on_exit EXIT
+  trap 'exit 129' HUP
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+  if [ $# -eq 0 ]; then
+    usage
+    return 0
+  fi
+  for arg in "$@"; do _OM818_ARGS="${_OM818_ARGS} $(quote "$arg")"; done
+  _OM818_CMD="$1"
+  shift
+  case "${1:-}" in
+  -h | --help)
+    usage
+    return 0
+    ;;
+  esac
+  case "$_OM818_CMD" in
+  install | update | rollback | uninstall)
+    if [ -n "${OM818_TEMP:-}" ]; then
+      error "om818 ${_OM818_CMD}: not available in a temporary install (removed once its last" \
+        'shell exits)'
+      return 1
+    fi
+    ;;
+  esac
+  case "$_OM818_CMD" in
+  install | update | rollback | env | uninstall) home_check ;;
+  esac
+  case "$_OM818_CMD" in
+  status) args_only '' "$@" && cmd_status ;;
+  update) args_only '--no-fetch' "$@" && cmd_update "$@" ;;
+  rollback) args_only '' "$@" && cmd_rollback ;;
+  env) args_only '--quiet --check' "$@" && cmd_env "$@" ;;
+  install) args_only '--quiet' "$@" && cmd_install "$@" ;;
+  uninstall) args_only '' "$@" && cmd_uninstall ;;
+  check) cmd_check "$@" ;;
+  version) version ;;
+  help | -h | --help) usage ;;
+  *)
+    error "unknown command: ${_OM818_CMD} (om818 help lists them)"
+    return 2
+    ;;
+  esac
+}
+
+# Fail on an argument the command doesn't take (e.g. a mistyped option)
+# usage: args_only '<options it takes, space-separated>' <argument>...
+args_only() {
+  local allowed=" $1 " arg
+  shift
+  for arg in "$@"; do
+    case "$allowed" in
+    *" ${arg} "*) ;;
+    *)
+      error "om818 ${_OM818_CMD}: unknown argument: ${arg} (om818 help)"
+      return 2
+      ;;
+    esac
+  done
+}
+
+# Refuse to change an install from a root shell in another user's home folder (run through sudo):
+# root's files there would then belong to root
+home_check() {
+  if [ "$(id -u)" -eq 0 ] && ! trusted_path "$HOME"; then
+    error "run it as yourself, without sudo: $(tilde "$HOME") isn't root's (root has its own" \
+      'install: sudo -i, then the install line)'
+    exit 1
+  fi
+}
+
+### Commands
+
+# Regenerate the environment; --quiet: no message (shells, after config.sh changed), --check:
+# also report unknown settings and invalid values in one line (those shells)
+cmd_env() {
+  local quiet=0 check=0 arg problems
+  for arg in "$@"; do
+    case "$arg" in
+    --quiet) quiet=1 ;;
+    --check) check=1 ;;
+    esac
+  done
+  # (a starting terminal, --check: gives way at once, the next terminal regenerates it)
+  if [ "$check" -eq 1 ]; then
+    lock_take quiet || return 0
+  else
+    lock_take || lock_busy "$?"
+  fi
+  config_load
+  env_generate
+  if [ "$check" -eq 1 ] && problems="$(config_problems)" && [ -n "$problems" ]; then
+    info "oh-my-818: $(tilde "$OM818_CONFIG"): ${problems}; all settings:" \
+      "$(tilde "${OM818_DIR}/defaults.sh")"
+  fi
+  if [ "$quiet" -eq 0 ]; then
+    info 'Environment regenerated: open a new terminal to use it.'
+  fi
+}
+
+# Set up this version: environment, startup files, history, gitstatusd. Also run after each update
+# and rollback, by the new version (--quiet: no closing message)
+cmd_install() {
+  local quiet=0 shell target
+  if [ "${1:-}" = '--quiet' ]; then quiet=1; fi
+  lock_take || lock_busy "$?"
+  # An update or rollback cut short (e.g. this line run to repair it): its checkout finished
+  # first, then that version's own install
+  if target="$(release_pending)" &&
+    [ "$(git -C "$OM818_DIR" rev-parse HEAD 2>/dev/null)" != "$target" ]; then
+    git -C "$OM818_DIR" -c advice.detachedHead=false checkout --quiet --force --detach "$target"
+    exec "${OM818_DIR}/bin/om818" install "$@"
+  fi
+  config_load
+  # Private when created here: env.d/ may hold secrets
+  if [ ! -d "$OM818_CONFIG_DIR" ]; then (umask 077 && mkdir -p -- "$OM818_CONFIG_DIR"); fi
+  mkdir -p -- "$OM818_ENV_D" "$OM818_SHELL_D"
+  env_generate
+  wire_startup_files "$quiet"
+  history_import
+  gitstatusd_download
+  if updatable; then release_record_current; fi
+  rm -f -- "${OM818_STATE_DIR}/install-pending"
+  if [ "$quiet" -eq 1 ]; then return 0; fi
+  info ''
+  if [ "$_OM818_STARTUP_TODO" -eq 1 ]; then
+    info "oh-my-818 $(version) is installed, but some startup files couldn't get their line: add"
+    info 'the lines shown above yourself. New shells use it then:'
+  else
+    info "oh-my-818 $(version) is installed: new shells use it (open a new terminal). Then:"
+  fi
+  info "  om818 help     your settings, variables and aliases (in $(tilde "$OM818_CONFIG_DIR")/)"
+  info '  om818 status   what is set up, if something looks wrong'
+  info "Docs: $(docs_url docs)"
+  # A login shell other than zsh or bash (e.g. /bin/sh, useradd's default) starts terminals and SSH
+  # sessions without oh-my-818: say how to switch. No SHELL (a Dockerfile's RUN line: dash and
+  # busybox don't set it): nothing to say
+  shell="${SHELL:-}"
+  case "${shell##*/}" in
+  zsh | bash | '') ;;
+  *)
+    info ''
+    shell="$(command -v zsh || command -v bash)"
+    info "Your login shell is ${SHELL}: oh-my-818 runs in zsh or bash."
+    info "  To switch: chsh -s ${shell} (else: sudo usermod -s ${shell} $(id -un))"
+    info "  For now: exec ${shell} -l"
+    ;;
+  esac
+  zsh_ignored_warning
+}
+
+# Repeated last, where it can't scroll by: zsh users must copy their lines before their next
+# terminal (wire_startup_files found the files: _OM818_ZSH_IGNORED). Once: the first zsh doesn't
+# say it again, nor a repair (zsh-files-seen, modules/zsh/init.zsh)
+zsh_ignored_warning() {
+  local zdir names='' file seen="${OM818_STATE_DIR}/zsh-files-seen"
+  if [ -z "$_OM818_ZSH_IGNORED" ] || [ -e "$seen" ]; then return 0; fi
+  # (seen only by someone at a terminal: an install without one, e.g. cloud-init or Ansible, leaves
+  # it to the first zsh)
+  if [ -t 2 ]; then mkdir -p -- "$OM818_STATE_DIR" && : >"$seen"; fi
+  zdir="$(zdotdir)"
+  while IFS= read -r file; do names="${names:+${names}, }$(tilde "$file")"; done <<EOF
+$_OM818_ZSH_IGNORED
+EOF
+  info ''
+  info "zsh users: zsh now reads $(tilde "$zdir")/, not ${names}. Copy your lines: aliases to"
+  info "$(tilde "$OM818_SHELL_D")/, exports to $(tilde "$OM818_ENV_D")/, tool blocks to"
+  info "$(tilde "$zdir")/.zshrc (not oh-my-zsh's), then set the file aside:"
+  info "$(docs_url docs/coming-from.md)"
+}
+
+# (the update a starting shell runs, --no-fetch, gives way quietly to another one)
+cmd_update() {
+  if [ "${1:-}" = '--no-fetch' ]; then
+    lock_take quiet || return 0
+  else
+    lock_take || lock_busy "$?"
+  fi
+  config_load
+  release_update "$@"
+}
+
+cmd_rollback() {
+  lock_take || lock_busy "$?"
+  config_load
+  release_rollback
+}
+
+# usage: lock_busy <lock_take's status>
+lock_busy() {
+  if [ "$1" -eq 2 ]; then
+    error "cannot write $(tilde "$OM818_STATE_DIR") (read-only, or a full disk?)"
+  else
+    error 'another om818 command is running (install, update, rollback, uninstall or env): try' \
+      'again once it is done'
+  fi
+  exit 1
+}
+
+# Look for a new release (run once a day in the background by the zsh and bash modules); first,
+# finish an update cut short (lib/release.sh: install-pending)
+cmd_check() {
+  # (under the lock, then: given up quietly, until the next check, while another command runs)
+  if [ -e "${OM818_STATE_DIR}/install-pending" ] && updatable; then
+    lock_take quiet || return 0
+    release_finish || true
+  fi
+  release_check
+}
+
+cmd_status() {
+  local report n host
+  # With an error in config.sh, the report goes on with the defaults (its settings row shows the
+  # error)
+  if ! config_load 2>/dev/null; then
+    _OM818_STATUS_CONFIG_ERROR=1
+    config_defaults
+  fi
+  report="$(status_report)"
+  n="$(printf '%s\n' "$report" | grep -c '^!' || true)"
+  report="$(home_to_tilde "$report")"
+  # (a temporary install's folder holds the host's name, which a report to share doesn't need)
+  host="$(uname -n | tr -c 'A-Za-z0-9._\n-' _)"
+  text_replace "$report" "om818-temp-${host}" 'om818-temp-<host>'
+  case "$n" in
+  0) printf '\nAll good.\n' ;;
+  1) printf '\n1 thing to fix (marked !): its line says how.\n' ;;
+  *) printf '\n%s things to fix (marked !): each line says how.\n' "$n" ;;
+  esac
+}
+
+cmd_uninstall() {
+  lock_take || lock_busy "$?"
+  config_load || config_defaults
+  uninstall
+}
+
+### Helpers
+
+# The shells' default history files (~/.<shell>_history), copied once into the new ones (the old
+# ones stay); history files private. A history file the user's startup files set (HISTFILE) isn't
+# looked for: they're named, with the command to copy it. (Not with om818_history=off: the shells
+# keep their own)
+history_import() {
+  local shell old new own
+  # shellcheck disable=SC2154 # set by config_load
+  if [ "$om818_history" = 'off' ]; then return 0; fi
+  for shell in zsh bash; do
+    old="${HOME}/.${shell}_history"
+    new="$(history_file "$shell")"
+    if [ -f "$new" ]; then chmod 600 -- "$new" 2>/dev/null || true; fi
+    if [ -e "$new" ]; then continue; fi
+    if own="$(history_own_files "$shell" | head -n 1)" && [ -n "$own" ]; then
+      info "$(tilde "$own") sets HISTFILE: that ${shell} history isn't copied (only"
+      info "  ~/.${shell}_history is). To bring it in: cat <that file> >>$(tilde "$new")"
+    fi
+    if [ ! -s "$old" ]; then continue; fi
+    # (e.g. root's, from a root shell that kept this HOME)
+    if [ ! -r "$old" ]; then
+      info "warning: cannot read $(tilde "$old"): your ${shell} history starts empty"
+      continue
+    fi
+    mkdir -p -- "$(dirname -- "$new")" "$OM818_STATE_DIR"
+    # (cat: a new file, private and writable, whatever the old one's mode)
+    (umask 077 && cat -- "$old" >"$new")
+    info "copied your ${shell} history ($(tilde "$old")) to $(tilde "$new")"
+  done
+}
+
+# Download gitstatusd (the prompt's git status helper) into the cache: the shells never download
+# it. gitstatus's install script checks it against the checksum in install.info, but only with a
+# sha256 tool (else it would take the download as is: its curl doesn't check certificates)
+gitstatusd_download() {
+  if [ "${OM818_NO_DOWNLOAD:-}" = 1 ]; then return 0; fi
+  if ! command -v shasum >/dev/null 2>&1 && ! command -v sha256sum >/dev/null 2>&1 &&
+    ! command -v sha256 >/dev/null 2>&1; then
+    info "warning: no git status in the prompt: its helper (gitstatusd) can't be checked without"
+    info '  sha256sum or shasum: install one, then run om818 install'
+    return 0
+  fi
+  if GITSTATUS_CACHE_DIR="${OM818_CACHE_DIR}/gitstatus" sh "${OM818_DIR}/vendor/gitstatus/install" \
+    -n -- true >/dev/null 2>&1; then
+    return 0
+  fi
+  info 'Downloading gitstatusd, the git status helper…'
+  # (its messages say to restart the shell, which never downloads it; a bad network can make it
+  # retry for minutes. In the background: timeout runs in its own process group, which Ctrl+C
+  # doesn't reach, so on_exit stops it)
+  if command -v timeout >/dev/null 2>&1; then set -- timeout 60; else set --; fi
+  GITSTATUS_CACHE_DIR="${OM818_CACHE_DIR}/gitstatus" \
+    "$@" sh "${OM818_DIR}/vendor/gitstatus/install" >/dev/null 2>&1 &
+  _OM818_DOWNLOAD_PID=$!
+  if wait "$_OM818_DOWNLOAD_PID"; then
+    _OM818_DOWNLOAD_PID=''
+  else
+    _OM818_DOWNLOAD_PID=''
+    info "warning: no git status in the prompt: its helper (gitstatusd) couldn't be downloaded"
+    info '  (offline?): run om818 install again to retry'
+  fi
+}
+
+# Print a report with ~ for the home directory: shared reports don't need it (its real path too,
+# when HOME goes through a symlink). (Not when it is /: every path would change)
+# usage: home_to_tilde <report>
+home_to_tilde() {
+  local real text="$1"
+  # (an empty HOME: dash and busybox take `cd ''` for `cd .`)
+  if [ -z "$HOME" ]; then
+    printf '%s\n' "$text"
+    return 0
+  fi
+  real="$(cd -- "$HOME" 2>/dev/null && pwd -P)" || real="$HOME"
+  if [ "$real" != / ]; then text="$(path_to_tilde "$text" "$real")"; fi
+  if [ "$HOME" != / ]; then text="$(path_to_tilde "$text" "$HOME")"; fi
+  printf '%s\n' "$text"
+}
+
+# Print a text with ~ for a folder's path, where it is a whole path: at a line's or word's start
+# (after a space, =, :, ( or a quote), and followed by /, a space, :, ), a quote or the line's end
+# (/home/nat: not in /home/nathan, nor in /backup/home/nat)
+# usage: path_to_tilde <text> <path>
+path_to_tilde() {
+  local rest="$1" out='' before after last=''
+  if [ -z "$2" ]; then
+    printf '%s\n' "$1"
+    return 0
+  fi
+  while :; do
+    case "$rest" in
+    *"$2"*) ;;
+    *) break ;;
+    esac
+    before="${rest%%"$2"*}"
+    rest="${rest#*"$2"}"
+    after="${rest%"${rest#?}"}"
+    # (the character before: in the text, also when it was the previous match's last)
+    if [ -n "$before" ]; then last="${before#"${before%?}"}"; fi
+    case "$last" in
+    '' | ' ' | = | : | '(' | '"' | "'" | '
+')
+      case "$after" in
+      '' | / | ' ' | : | ')' | '"' | "'" | '
+') out="${out}${before}~" ;;
+      *) out="${out}${before}${2}" ;;
+      esac
+      ;;
+    *) out="${out}${before}${2}" ;;
+    esac
+    last="${2#"${2%?}"}"
+  done
+  printf '%s\n' "${out}${rest}"
+}
+
+# (main runs from this line, once the whole file is read: `om818 update` replaces this file while
+# it runs)
+eval 'main "$@";exit "$?"'

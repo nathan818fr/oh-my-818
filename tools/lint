@@ -1,0 +1,231 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+shopt -s inherit_errexit
+
+# Check every file of the repo (vendor/ aside), or format them with --fix. The tools come from
+# .config/mise.toml (`mise run lint`, `mise run fmt`).
+
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+
+function usage() {
+  cat <<'EOF'
+usage: tools/lint [--fix]
+
+Lint the shell files (shellcheck, shfmt, zsh -n, 100 columns), the other files (dprint), the
+workflows (actionlint), the docs (links, integrations listed, examples that parse), and the repo's
+rules (defaults only in defaults.sh, setting and integration names).
+
+  --fix       format the files instead of checking them (shfmt, dprint)
+  -h, --help  show this help
+EOF
+}
+
+function main() {
+  local fix=0 file out
+  # Shell files (shellcheck and shfmt read their dialect from their shebang, their
+  # `# shellcheck shell=` directive and .editorconfig); files zsh parses (zsh's own, and those
+  # shared with bash)
+  local -a shell=() zsh=()
+
+  case "${1:-}" in
+  '') ;;
+  --fix) fix=1 ;;
+  -h | --help)
+    usage
+    return 0
+    ;;
+  *)
+    usage >&2
+    return 2
+    ;;
+  esac
+
+  cd -- "$ROOT_DIR"
+  out="$(git ls-files --cached --others --exclude-standard -- . ':!vendor' ':!.local')"
+  while IFS= read -r file; do
+    if [[ ! -f "$file" ]]; then continue; fi
+    case "$file" in
+    # (* also matches /: every .sh under modules/shell)
+    modules/shell/*.sh | integrations/*/interactive.sh)
+      shell+=("$file")
+      zsh+=("$file")
+      ;;
+    *.sh | *.bash | bin/* | tools/* | tests/run) shell+=("$file") ;;
+    *.zsh) zsh+=("$file") ;;
+    esac
+  done <<<"$out"
+
+  if [[ "$fix" -eq 1 ]]; then
+    shfmt -w "${shell[@]}"
+    dprint fmt
+    return 0
+  fi
+
+  shellcheck -x "${shell[@]}"
+  shfmt -d "${shell[@]}"
+  # Settings have their default in defaults.sh only, not again where they are used (tests aside)
+  out="$(grep -nE '\$\{om818_[a-z0-9_]+:?[-=][^}]' -- "${shell[@]}" "${zsh[@]}" || true)"
+  out="$(grep -vE '^(defaults\.sh|tests/)' <<<"$out" || true)"
+  if [[ -n "$out" ]]; then
+    printf 'error: a default outside defaults.sh:\n%s\n' "$out" >&2
+    return 1
+  fi
+  for file in "${zsh[@]}"; do zsh -n -- "$file"; done
+  # Lines up to 100 columns (URLs aside)
+  out="$(awk 'length > 100 && !/https?:\/\// { print FILENAME ":" FNR }' "${shell[@]}" "${zsh[@]}")"
+  if [[ -n "$out" ]]; then
+    printf 'error: lines over 100 columns:\n%s\n' "$out" >&2
+    return 1
+  fi
+  check_setting_names
+  check_docs
+  dprint check
+  actionlint
+}
+
+# Settings and integrations share the om818_ namespace: each setting is defined once in
+# defaults.sh; the Integrations section holds exactly one om818_<name> per integration (plus the
+# xdg integration's om818_xdg_<tool>, one per tool of its list); integration names are
+# identifiers, none named like oh-my-818's own variables and functions
+function check_setting_names() {
+  local names dups dir name section tool
+  local -a integrations=()
+  # oh-my-818's own names (variables, functions and their families), not settings
+  local reserved=' shell integrations path_first path_prepend path_append path_remove indicator '
+  names="$(grep -oE '^(typeset -gA )?om818_[a-z0-9_]+=' defaults.sh |
+    sed -E 's/^typeset -gA //; s/=$//')"
+  dups="$(sort <<<"$names" | uniq -d)"
+  if [[ -n "$dups" ]]; then
+    printf 'error: settings defined twice in defaults.sh:\n%s\n' "$dups" >&2
+    return 1
+  fi
+  section="$(sed -n '/^### Integrations/,/^### /p' defaults.sh |
+    grep -oE '^om818_[a-z0-9_]+=' | sed -E 's/^om818_//; s/=$//' | grep -v '^xdg_' | sort)"
+  for dir in integrations/*/; do
+    name="$(basename -- "$dir")"
+    integrations+=("$name")
+    if [[ "$name" == *[!a-z0-9_]* || "$reserved" == *" ${name} "* ]]; then
+      printf 'error: integration %s: not a valid name (lowercase, digits, _; not om818_%s)\n' \
+        "$name" "$name" >&2
+      return 1
+    fi
+  done
+  if [[ "$section" != "$(printf '%s\n' "${integrations[@]}" | sort)" ]]; then
+    printf 'error: the Integrations section of defaults.sh must set om818_<name> for each\n' >&2
+    printf 'integration, and nothing else. Integrations: %s\n' "${integrations[*]}" >&2
+    return 1
+  fi
+  while read -r tool _; do
+    case "$tool" in '' | '#'*) continue ;; esac
+    if ! grep -qx "om818_xdg_${tool}" <<<"$names"; then
+      printf 'error: integrations/xdg/tools.list: no om818_xdg_%s in defaults.sh\n' "$tool" >&2
+      return 1
+    fi
+  done <integrations/xdg/tools.list
+}
+
+# The docs: relative links and their anchors resolve; each page of docs/ is in both indexes;
+# each integration has its row in docs/integrations.md; CHANGELOG.md's headings keep the format
+# older versions read; the examples of the user's files (code blocks starting with "# config.sh",
+# "# env.d/….sh", "# shell.d/….sh") parse in the shells that read them
+function check_docs() {
+  local out file link target anchor dir example kind failed=0
+  local -a files
+  out="$(git ls-files --cached --others --exclude-standard -- '*.md' ':!vendor' ':!.local')"
+  mapfile -t files <<<"$out"
+  for file in "${files[@]}"; do
+    if [[ ! -f "$file" ]]; then continue; fi
+    out="$(grep -o '](\([^)]*\))' "$file" | sed 's/^](//; s/)$//' || true)"
+    while IFS= read -r link; do
+      case "$link" in '' | http://* | https://* | mailto:*) continue ;; esac
+      target="${link%%#*}"
+      anchor=''
+      if [[ "$link" == *'#'* ]]; then anchor="${link#*#}"; fi
+      if [[ -z "$target" ]]; then target="$file"; else target="$(dirname -- "$file")/${target}"; fi
+      if [[ ! -e "$target" ]]; then
+        printf 'error: %s: broken link: %s\n' "$file" "$link" >&2
+        failed=1
+      elif [[ -n "$anchor" && "$target" == *.md ]]; then
+        # (grep without -q: it reads the whole list, so md_anchors gets no SIGPIPE, which pipefail
+        # would turn into a failure)
+        if ! md_anchors "$target" | grep -xF -- "$anchor" >/dev/null; then
+          printf 'error: %s: no heading for: %s\n' "$file" "$link" >&2
+          failed=1
+        fi
+      fi
+    done <<<"$out"
+  done
+  # Each page of docs/ listed in both indexes: the README's and docs/README.md
+  for file in docs/*.md; do
+    if [[ "$file" == 'docs/README.md' ]]; then continue; fi
+    if ! grep -qF "](${file})" README.md || ! grep -qF "](${file#docs/})" docs/README.md; then
+      printf 'error: %s: not listed in README.md and docs/README.md\n' "$file" >&2
+      failed=1
+    fi
+  done
+  for dir in integrations/*/; do
+    if ! grep -q "^| \`$(basename -- "$dir")\`" docs/integrations.md; then
+      printf 'error: docs/integrations.md: no row for %s\n' "$(basename -- "$dir")" >&2
+      failed=1
+    fi
+  done
+  out="$(grep '^## ' CHANGELOG.md | grep -vxE '## (Unreleased|v[0-9]+\.[0-9]+\.[0-9]+)' || true)"
+  if [[ -n "$out" ]]; then
+    printf 'error: CHANGELOG.md: headings must be "## Unreleased" or "## vX.Y.Z":\n%s\n' "$out" >&2
+    failed=1
+  fi
+  dir="$(mktemp -d)"
+  # One file per example: <n>.<kind>, its origin in <n>.src
+  awk -v dir="$dir" '
+    open && /^```/ { open = 0; close(out); next }
+    open { print > out; next }
+    /^```/ { fence = 1; next }
+    fence {
+      fence = 0
+      name = $2
+      sub(/:$/, "", name)
+      kind = ""
+      if ($1 == "#" && name == "config.sh") kind = "config"
+      else if ($1 == "#" && name ~ /^env\.d\/.*\.sh$/) kind = "env"
+      else if ($1 == "#" && name ~ /^shell\.d\/.*\.sh$/) kind = "both"
+      else if ($1 == "#" && name ~ /^shell\.d\/.*\.zsh$/) kind = "zsh"
+      else if ($1 == "#" && name ~ /^shell\.d\/.*\.bash$/) kind = "bash"
+      if (kind == "") next
+      n++
+      out = dir "/" n "." kind
+      print FILENAME ":" FNR > (dir "/" n ".src")
+      close(dir "/" n ".src")
+      open = 1
+      print > out
+    }
+  ' "${files[@]}"
+  for example in "$dir"/*.*; do
+    kind="${example##*.}"
+    case "$kind" in
+    src) continue ;;
+    config | both) zsh -n "$example" && bash -n "$example" ;;
+    env) sh -n "$example" ;;
+    zsh) zsh -n "$example" ;;
+    bash) bash -n "$example" ;;
+    esac 2>/dev/null || {
+      printf 'error: %s: the example does not parse\n' "$(<"${example%.*}.src")" >&2
+      failed=1
+    }
+  done
+  rm -rf -- "$dir"
+  return "$failed"
+}
+
+# Print the anchors of a Markdown file's headings, as GitHub makes them (code blocks aside)
+function md_anchors() {
+  local heading
+  awk '/^```/ { code = !code; next } !code && /^#+ / { sub(/^#+ /, ""); print }' "$1" |
+    while IFS= read -r heading; do
+      heading="${heading,,}"
+      heading="${heading//[^a-z0-9 _-]/}"
+      printf '%s\n' "${heading// /-}"
+    done
+}
+
+# (main runs once the whole file is read: editing it while it runs is safe)
+eval 'main "$@";exit "$?"'

@@ -1,0 +1,76 @@
+name: CI
+
+# On main, on release tags, and on pull requests (a branch of a PR runs once, as the PR)
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+# A newer push to the same PR cancels its run in progress. A push to main or a tag is grouped by
+# its commit: never cancelled (a tag on main's commit waits for main's run)
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Require the lockfile
+        run: test -s .config/mise.lock
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+        with:
+          # (no cache: the vendor workflow runs upstream code, which could write one)
+          cache: false
+        env:
+          # Tools only from .config/mise.lock: fails when it misses one
+          MISE_LOCKED: 1
+      - name: Install zsh
+        run: sudo apt-get update && sudo apt-get install -y zsh
+      - name: Lint
+        run: mise run lint
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install zsh and tmux (and bash 4.4+ on macOS)
+        run: |
+          # (tmux: the terminal tests)
+          if [[ "$RUNNER_OS" == 'Linux' ]]; then
+            sudo apt-get update && sudo apt-get install -y zsh tmux
+          else
+            # bash 4.4+ to run the tests, which use it for the bash module too (macOS ships 3.2)
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install bash tmux
+          fi
+      - name: Test
+        run: bash tests/run
+
+  # The oldest bash oh-my-818 supports, on Alpine (busybox's tools, no GNU coreutils)
+  test-bash-4-4:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Test
+        run: |
+          # As a user: root ignores read-only files, which the tests check
+          docker run --rm -v "${PWD}:/src:ro" docker.io/library/bash:4.4 sh -c \
+            'apk add --no-cache git zsh tmux >/dev/null && adduser -D tester &&
+            cp -r /src /home/tester/src && chown -R tester /home/tester/src &&
+            su tester -s /bin/sh -c "cd ~/src && bash tests/run"'

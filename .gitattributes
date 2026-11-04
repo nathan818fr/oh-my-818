@@ -1,0 +1,3 @@
+# Scripts must keep LF line endings, also for users with core.autocrlf=true (WSL)
+* text=auto eol=lf
+*.png binary

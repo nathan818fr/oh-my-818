@@ -1,0 +1,99 @@
+name: Vendor update
+
+# Once a month, a PR moving the code in vendor/ to its upstream's latest commit: reviewed and
+# merged by hand. Two jobs: the upstream code runs (lint, tests) only in the first, which can't
+# write to the repository; the second, which can, only applies the diff to vendor/ and opens the
+# PR.
+on:
+  schedule:
+    - cron: "47 17 11 * *"
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Update vendor/
+        run: tools/vendor-update --latest
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+        with:
+          # (not written: upstream code runs in this job, CI's jobs read the cache)
+          cache_save: false
+        env:
+          MISE_LOCKED: 1
+      - name: Install zsh and tmux
+        run: sudo apt-get update && sudo apt-get install -y zsh tmux
+      # Checked here: a PR opened with the workflow's token doesn't run the CI workflow
+      - name: Lint and test
+        run: mise run lint && mise run test
+      - name: Diff
+        run: git add -A vendor && git diff --cached --binary --no-renames -- vendor >vendor.diff
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vendor-diff
+          path: vendor.diff
+
+  pr:
+    needs: update
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Outside the checkout: the artifact comes from the job that ran upstream code (a file in it
+      # like .git/config would run code here, where the token can write)
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vendor-diff
+          path: ${{ runner.temp }}/vendor-diff
+      # Only files in vendor/. Before applying: a diff that names another path, renames or copies
+      # is refused (-a: a NUL byte would make grep take the diff for binary, and match nothing).
+      # After: anything in vendor/ other than files and folders (a link, however its mode is
+      # spelled), or any change outside vendor/ (ignored files included)
+      - name: Apply
+        env:
+          DIFF: ${{ runner.temp }}/vendor-diff/vendor.diff
+        run: |
+          if [[ ! -s "$DIFF" ]]; then exit 0; fi
+          if grep -aE '^(rename|copy|similarity|dissimilarity) ' "$DIFF" ||
+            grep -aE '^diff --git ' "$DIFF" |
+            grep -avE '^diff --git "?a/vendor/.+"? "?b/vendor/.+"?$'; then
+            echo 'error: the diff renames, copies, or names a path outside vendor/' >&2
+            exit 1
+          fi
+          git apply --check "$DIFF"
+          git apply "$DIFF"
+          if [[ -n "$(find vendor ! -type f ! -type d -print -quit)" ]]; then
+            echo 'error: the diff made something other than a file in vendor/ (a link?)' >&2
+            exit 1
+          fi
+          if [[ -n "$(git status --porcelain --untracked-files=all --ignored -- . ':!vendor')" ]]
+          then
+            echo 'error: the diff changed files outside vendor/' >&2
+            exit 1
+          fi
+      - uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          branch: vendor-update
+          add-paths: vendor
+          commit-message: Update the vendored code
+          title: Update the vendored code
+          body: |
+            `tools/vendor-update --latest`: each entry of `vendor/sources.txt` moved to its
+            upstream's latest commit. Lint and tests passed on it in the workflow, on Ubuntu
+            only (this PR doesn't trigger the CI workflow). Review the diff before merging.

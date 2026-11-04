@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+shopt -s inherit_errexit
+
+# Run every tests/test-*.sh (or the given ones). Linting is tools/lint.
+# usage: tests/run [<test file>...]
+
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+
+function main() {
+  local file failed=0
+  local -a files=("$@")
+
+  if [[ ${#files[@]} -eq 0 ]]; then files=("${ROOT_DIR}"/tests/test-*.sh); fi
+  for file in "${files[@]}"; do
+    printf '== %s\n' "$(basename -- "$file")"
+    if ! bash "$file"; then failed=1; fi
+  done
+  return "$failed"
+}
+
+# (main runs once the whole file is read: editing it while it runs is safe)
+eval 'main "$@";exit "$?"'

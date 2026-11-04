@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+shopt -s inherit_errexit
+
+# Copy third-party code into vendor/<name>/ from the commits listed in vendor/sources.txt.
+# With --latest, move the given entries (default: all) to their upstream default branch first,
+# and record the new commits in sources.txt.
+
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+VENDOR_DIR="${ROOT_DIR}/vendor"
+SOURCES="${VENDOR_DIR}/sources.txt"
+TMP_DIR='' # removed on exit
+
+function usage() {
+  cat <<'EOF'
+usage: tools/vendor-update [--latest] [<name>...]
+
+Refresh vendor/<name>/ (default: every entry of vendor/sources.txt) from its recorded commit.
+
+  --latest   first move each entry to the latest commit of its upstream default branch
+  -h, --help show this help
+EOF
+}
+
+function main() {
+  local latest=0 line name repo commit paths
+  local -a names=() fields
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+    --latest) latest=1 ;;
+    -h | --help)
+      usage
+      return 0
+      ;;
+    -*)
+      usage >&2
+      return 2
+      ;;
+    *) names+=("$1") ;;
+    esac
+    shift
+  done
+
+  TMP_DIR="$(mktemp -d)"
+  trap 'rm -rf -- "$TMP_DIR"' EXIT
+
+  while IFS= read -r line; do
+    if [[ -z "$line" || "$line" == \#* ]]; then continue; fi
+    read -ra fields <<<"$line"
+    name="${fields[0]}" repo="${fields[1]}" commit="${fields[2]}"
+    paths="${fields[*]:3}"
+    if [[ ${#names[@]} -gt 0 && " ${names[*]} " != *" ${name} "* ]]; then continue; fi
+
+    if [[ "$latest" -eq 1 ]]; then
+      commit="$(latest_commit "$repo")"
+      set_commit "$name" "$commit"
+    fi
+    printf '%s: %s@%s\n' "$name" "$repo" "${commit:0:12}" >&2
+    fetch "$repo" "$commit" "${TMP_DIR}/${name}"
+    copy_paths "${TMP_DIR}/${name}" "${VENDOR_DIR}/${name}" "$paths"
+  done <"$SOURCES"
+}
+
+### Helpers
+
+# Print the commit at the head of a GitHub repository's default branch
+function latest_commit() {
+  local _out
+  _out="$(git ls-remote "https://github.com/${1}.git" HEAD)"
+  printf '%s\n' "${_out%%[[:space:]]*}"
+}
+
+# Replace the commit of an entry in sources.txt
+function set_commit() {
+  local _name="$1" _commit="$2"
+  awk -v name="$_name" -v commit="$_commit" '
+    $1 == name { sub($3, commit) }
+    { print }
+  ' "$SOURCES" >"${SOURCES}.tmp"
+  mv -- "${SOURCES}.tmp" "$SOURCES"
+}
+
+# Fetch one commit of a GitHub repository into a new directory
+function fetch() {
+  local _repo="$1" _commit="$2" _dir="$3"
+  git init -q -- "$_dir"
+  git -C "$_dir" fetch -q --depth 1 "https://github.com/${_repo}.git" "$_commit"
+  git -C "$_dir" -c advice.detachedHead=false checkout -q FETCH_HEAD
+}
+
+# Replace a vendor directory with the given paths of a checkout
+function copy_paths() {
+  local _from="$1" _to="$2" _path
+  local -a _paths
+  read -ra _paths <<<"$3"
+  rm -rf -- "$_to"
+  for _path in "${_paths[@]}"; do
+    mkdir -p -- "$(dirname -- "${_to}/${_path}")"
+    cp -R -- "${_from}/${_path}" "${_to}/${_path}"
+  done
+}
+
+# (main runs once the whole file is read: editing it while it runs is safe)
+eval 'main "$@";exit "$?"'

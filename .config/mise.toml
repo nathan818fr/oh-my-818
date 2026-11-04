@@ -1,0 +1,30 @@
+# The repo's tools and tasks (for development only: oh-my-818 itself doesn't need mise)
+
+# Tools are pinned by .config/mise.lock (versions, URLs, checksums), kept up to date here and
+# required in CI (MISE_LOCKED: an install fails when the lockfile misses a tool). Not required
+# here: mise would apply it to the user's global tools too. Refresh: mise lock
+[settings]
+lockfile = true
+lockfile_platforms = ["linux-x64", "linux-arm64", "macos-x64", "macos-arm64"]
+
+[tools]
+actionlint = "1.7.12"
+dprint = "0.64.3"
+shellcheck = "0.11.0"
+shfmt = "3.14.1"
+
+[tasks.lint]
+description = "Check every file: shell (shellcheck, shfmt, zsh -n), docs, workflows, repo rules"
+run = "tools/lint"
+
+[tasks.fmt]
+description = "Format every file: shfmt, dprint"
+run = "tools/lint --fix"
+
+[tasks.test]
+description = "Run the tests, each in a throwaway HOME (args: test files)"
+run = "tests/run"
+
+[tasks.vendor-update]
+description = "Refresh vendor/ from vendor/sources.txt (--latest: move to upstream's latest)"
+run = "tools/vendor-update"

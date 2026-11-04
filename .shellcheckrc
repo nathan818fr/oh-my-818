@@ -1,0 +1,6 @@
+# local is in every sh oh-my-818 targets (dash, busybox, bash, zsh)
+disable=SC3043
+external-sources=true
+source-path=SCRIPTDIR
+# info only: helpers called without arguments
+disable=SC2119

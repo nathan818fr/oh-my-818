@@ -1,0 +1,29 @@
+# The format of each file, for editors and shfmt (which reads the shell dialect here)
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+max_line_length = 100
+
+# POSIX sh: runs before zsh exists, and in plain sh
+[{install.sh,bin/om818,lib/*.sh,modules/env/*.sh,integrations/*/integration.sh}]
+shell_variant = posix
+
+# Read by zsh and bash (code valid in both), and bash's own files
+[{defaults.sh,modules/shell/**.sh,integrations/*/interactive.sh,*.bash}]
+shell_variant = bash
+
+# Upstream files, kept as they are
+[vendor/**]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+indent_style = unset
+indent_size = unset
+max_line_length = unset
