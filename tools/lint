@@ -70,6 +70,12 @@ function main() {
     printf 'error: a default outside defaults.sh:\n%s\n' "$out" >&2
     return 1
   fi
+  # No -- after chmod's mode: macOS's chmod takes it for a file name (paths here are absolute)
+  out="$(grep -nE '(^|[^a-z_])chmod [^|;]*-- ' -- "${shell[@]}" "${zsh[@]}" || true)"
+  if [[ -n "$out" ]]; then
+    printf "error: chmod with --, which macOS's chmod takes for a file name:\n%s\n" "$out" >&2
+    return 1
+  fi
   for file in "${zsh[@]}"; do zsh -n -- "$file"; done
   # Lines up to 100 columns (URLs aside)
   out="$(awk 'length > 100 && !/https?:\/\// { print FILENAME ":" FNR }' "${shell[@]}" "${zsh[@]}")"

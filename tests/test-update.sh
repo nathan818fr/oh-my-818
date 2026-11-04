@@ -252,7 +252,7 @@ function test_rollback_cut_short() {
   mkdir -p -- "$fake"
   printf '#!/bin/sh\ncase " $* " in *" checkout "*) exit 1 ;; esac\nexec %q "$@"\n' \
     "$(command -v git)" >"${fake}/git"
-  chmod +x -- "${fake}/git"
+  chmod +x "${fake}/git"
   run PATH="${fake}:${SANDBOX}/bin:${TEST_DIR}/sysbin" "${SANDBOX}/home/${OM818}" rollback
   assert_file_contains .local/state/om818/update 'skip=v0.2.0'
   run "${SANDBOX}/home/${OM818}" rollback

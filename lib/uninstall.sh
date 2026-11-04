@@ -101,7 +101,7 @@ EOF
         info "  mv ~/${file}.pre-om818 ~/${file}"
       elif mv -f -- "${HOME}/${file}.pre-om818" "${HOME}/${file}"; then
         # (protection made it read-only while it was ~/${file})
-        chmod u+w -- "${HOME}/${file}"
+        chmod u+w "${HOME}/${file}"
         info "$(tilde "${HOME}/${file}") is back (it was set aside as ${file}.pre-om818)."
         if [ "$file" = .zshrc ]; then restored=1; fi
       fi

@@ -28,7 +28,7 @@ elif [[ -z "$_om818_foreign_home" ]]; then
     fi
     zmodload -F zsh/stat b:zstat
     if zstat -o -A mode +mode -- "$HISTFILE" 2>/dev/null && [[ "${mode[1]}" != *600 ]]; then
-      chmod 600 -- "$HISTFILE"
+      chmod 600 "$HISTFILE"
       print -ru2 -- "oh-my-818: made your history file private (chmod 600 ${HISTFILE/#$HOME/~})"
     fi
   }

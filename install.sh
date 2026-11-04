@@ -281,7 +281,7 @@ if [ "$#" -eq 0 ]; then set -- -i; fi
 EOF
     printf '%s\n' "exec $(temp_quote "$bash") --rcfile $(temp_quote "${1}/bashrc") \"\$@\""
   } >"${1}/bin/bash"
-  chmod +x -- "${1}/bin/bash"
+  chmod +x "${1}/bin/bash"
 }
 
 # Print the folder, made private if missing: in XDG_RUNTIME_DIR when it is private (removed at
@@ -330,7 +330,7 @@ temp_folder() {
   folder="${parent%/}/${folder##*/}"
   # (private: a setgid or default ACL parent would give it other bits, or an ACL)
   if (umask 077 && mkdir -- "$folder") 2>/dev/null; then
-    chmod u=rwx,go=,g-s -- "$folder" 2>/dev/null || true
+    chmod u=rwx,go=,g-s "$folder" 2>/dev/null || true
   fi
   if [ ! -e "$folder" ] && [ ! -L "$folder" ]; then
     printf 'error: cannot make %s: set XDG_RUNTIME_DIR (or XDG_CACHE_HOME) to a private folder\n' \

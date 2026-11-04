@@ -289,7 +289,7 @@ ${file}
     case "$mode" in ????????w*) bits="${bits}o" ;; esac
     # (listed first: if the chmod is interrupted, the next install still knows the file)
     printf '%s\t%s\t%s\n' "$kind" "${bits:--}" "$file" >>"$list"
-    chmod a-w -- "$file"
+    chmod a-w "$file"
     case "
 ${_OM818_PROTECTED_BEFORE}
 " in
@@ -323,9 +323,9 @@ release_startup_files() {
     if [ -z "$file" ] || [ ! -e "$file" ]; then continue; fi
     _OM818_PROTECTED_BEFORE="${_OM818_PROTECTED_BEFORE}${file}
 "
-    chmod u+w -- "$file"
-    case "$bits" in *g*) chmod g+w -- "$file" ;; esac
-    case "$bits" in *o*) chmod o+w -- "$file" ;; esac
+    chmod u+w "$file"
+    case "$bits" in *g*) chmod g+w "$file" ;; esac
+    case "$bits" in *o*) chmod o+w "$file" ;; esac
     # (a guard it created, still empty)
     if [ "$kind" = guard ] && [ ! -s "$file" ]; then rm -f -- "$file"; fi
   done <"$list"

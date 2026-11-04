@@ -64,7 +64,7 @@ function test_leaves_a_dotfiles_layout_alone() {
   home_file .bashrc 'source ~/.config/bash/bashrc'
   home_file .profile '. ~/.local/state/om818/env.sh'
   home_file .zshrc '# guard'
-  chmod a-w -- "${SANDBOX}/home/.zshenv" "${SANDBOX}/home/.zsh/.zshrc" "${SANDBOX}/home/.bashrc" \
+  chmod a-w "${SANDBOX}/home/.zshenv" "${SANDBOX}/home/.zsh/.zshrc" "${SANDBOX}/home/.bashrc" \
     "${SANDBOX}/home/.profile" "${SANDBOX}/home/.zshrc"
   install
   assert_output_not_contains 'warning'
@@ -76,7 +76,7 @@ function test_leaves_a_dotfiles_layout_alone() {
 
 function test_never_writes_a_read_only_file() {
   home_file .bashrc '# protected'
-  chmod a-w -- "${SANDBOX}/home/.bashrc"
+  chmod a-w "${SANDBOX}/home/.bashrc"
   install
   assert_output_contains 'warning: '
   assert_output_contains '/.bashrc is read-only: add this line yourself'
@@ -151,7 +151,7 @@ function test_copies_the_old_history() {
     fail 'the history is not private'
   fi
   # Once: oh-my-818's history is never replaced
-  chmod 644 -- "${SANDBOX}/home/.local/state/bash/history"
+  chmod 644 "${SANDBOX}/home/.local/state/bash/history"
   install
   assert_output_not_contains 'copied'
   # (and made private again, e.g. after a backup restored it readable by others)
@@ -222,9 +222,9 @@ function test_protects_startup_files() {
   done
   # A repair (as after an update): still protected, nothing to say; a line missing from a file it
   # protected (e.g. one a new version adds) added
-  chmod u+w -- "${SANDBOX}/home/.profile"
+  chmod u+w "${SANDBOX}/home/.profile"
   printf '# emptied\n' >"${SANDBOX}/home/.profile"
-  chmod a-w -- "${SANDBOX}/home/.profile"
+  chmod a-w "${SANDBOX}/home/.profile"
   install
   assert_file_contains .profile '/om818/env.sh"; fi # om818'
   assert_output_not_contains 'read-only'
@@ -237,7 +237,7 @@ function test_protects_startup_files() {
 function test_protection_turned_off() {
   # A file the user protected: theirs, left read-only
   home_file .bash_profile '. ~/.local/state/om818/env.sh'
-  chmod a-w -- "${SANDBOX}/home/.bash_profile"
+  chmod a-w "${SANDBOX}/home/.bash_profile"
   home_file .config/om818/config.sh 'om818_protect_startup_files=on'
   install
   home_file .config/om818/config.sh 'om818_protect_startup_files=off'
@@ -301,7 +301,7 @@ function test_uninstall_puts_back_a_zshrc_set_aside() {
     mv -- "${SANDBOX}/home/${file}" "${SANDBOX}/home/${file}.pre-om818"
   done
   # (read-only, as om818_protect_startup_files leaves a file it protected)
-  chmod 444 -- "${SANDBOX}/home/.zshrc.pre-om818"
+  chmod 444 "${SANDBOX}/home/.zshrc.pre-om818"
   # Written again since (a tool's installer): status doesn't say to set it aside a second time,
   # which would replace the copy
   home_file .zprofile 'new zprofile'
@@ -413,7 +413,7 @@ function test_history_left_alone_when_off() {
 function test_read_only_old_history() {
   # A read-only old file: the copy can still be written
   home_file .bash_history 'ls'
-  chmod 400 -- "${SANDBOX}/home/.bash_history"
+  chmod 400 "${SANDBOX}/home/.bash_history"
   install
   if [[ "$(ls -l -- "${SANDBOX}/home/.local/state/bash/history")" != -rw-------* ]]; then
     fail "copy: $(ls -l -- "${SANDBOX}/home/.local/state/bash/history")"
@@ -425,7 +425,7 @@ function test_a_cut_startup_file_keeps_its_copy() {
   # the state folder (which uninstall removes)
   home_file .bashrc '# mine
 export TOKEN=secret'
-  chmod 600 -- "${SANDBOX}/home/.bashrc"
+  chmod 600 "${SANDBOX}/home/.bashrc"
   fake_tool cat 'case "${2:-}" in */startup.tmp.*) head -c 5 -- "$2"; exit 1 ;; esac
 exec "'"${TEST_DIR}"'/sysbin/cat" "$@"'
   install
@@ -451,7 +451,7 @@ function test_reinstall_before_logging_out() {
 function test_protection_restores_what_was_there() {
   # A file the user had empty, and a group-writable one: as they were once protection is off
   home_file .bashrc '# mine'
-  chmod 664 -- "${SANDBOX}/home/.bashrc"
+  chmod 664 "${SANDBOX}/home/.bashrc"
   mkdir -p -- "${SANDBOX}/home/.config/zsh"
   : >"${SANDBOX}/home/.config/zsh/.zprofile"
   home_file .config/om818/config.sh 'om818_protect_startup_files=on'
@@ -533,10 +533,10 @@ function test_names_a_history_set_with_histfile() {
 function test_unreadable_old_history() {
   # e.g. root's, from a root shell that kept this HOME: the install goes on
   home_file .bash_history 'ls'
-  chmod 000 -- "${SANDBOX}/home/.bash_history"
+  chmod 000 "${SANDBOX}/home/.bash_history"
   install
   assert_output_contains 'cannot read ~/.bash_history'
-  chmod 600 -- "${SANDBOX}/home/.bash_history"
+  chmod 600 "${SANDBOX}/home/.bash_history"
 }
 
 function test_om818_through_a_link() {
@@ -552,7 +552,7 @@ function test_protection_of_a_linked_file() {
   # rwxrwxrwx: taken for the file's, protection off would make it writable by anyone)
   mkdir -p -- "${SANDBOX}/home/dotfiles"
   printf '# mine\n' >"${SANDBOX}/home/dotfiles/bashrc"
-  chmod 644 -- "${SANDBOX}/home/dotfiles/bashrc"
+  chmod 644 "${SANDBOX}/home/dotfiles/bashrc"
   ln -s -- dotfiles/bashrc "${SANDBOX}/home/.bashrc"
   home_file .config/om818/config.sh 'om818_protect_startup_files=on'
   install
@@ -1345,7 +1345,7 @@ function test_temp_shell_in_another_pid_namespace() {
 function test_temp_in_a_setgid_folder() {
   tty_available || return 0
   mkdir -m 700 -- "${SANDBOX}/cache"
-  chmod g+s -- "${SANDBOX}/cache"
+  chmod g+s "${SANDBOX}/cache"
   tty_start "env XDG_RUNTIME_DIR=${SANDBOX}/none XDG_CACHE_HOME=${SANDBOX}/cache \
     sh ${FIXTURE}/install.sh --temp"
   if ! compgen -G "${SANDBOX}/cache/om818-temp-*" >/dev/null; then fail 'not used'; fi

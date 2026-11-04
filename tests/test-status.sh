@@ -61,7 +61,7 @@ function test_read_only_startup_files() {
   # rc files protected from installers that append to them, and a ~/.zshrc guard
   install
   : >"${SANDBOX}/home/.zshrc"
-  chmod a-w -- "${SANDBOX}/home/.zshrc" "${SANDBOX}/home/.zshenv" \
+  chmod a-w "${SANDBOX}/home/.zshrc" "${SANDBOX}/home/.zshenv" \
     "${SANDBOX}/home/.config/zsh/.zshrc"
   run "${SANDBOX}/home/${OM818}" status
   assert_output_contains '~/.zshenv: ok (loads the environment in zsh, read-only)'

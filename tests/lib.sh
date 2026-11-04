@@ -95,7 +95,7 @@ function run_tests() {
     fi
     kill_leftovers
     # Never fatal: a test may leave read-only files, or a process still writing (retried once)
-    chmod -R u+w -- "$SANDBOX" 2>/dev/null || true
+    chmod -R u+w "$SANDBOX" 2>/dev/null || true
     rm -rf -- "$SANDBOX" 2>/dev/null || { sleep 1 && rm -rf -- "$SANDBOX" 2>/dev/null; } || true
     if [[ "$status" -eq 0 ]]; then
       printf 'ok   %s\n' "$test"
@@ -367,7 +367,7 @@ function fake_tool() {
   # Replaces what is there (e.g. the link to the tests' bash), never writes through it
   rm -f -- "${SANDBOX}/bin/${1}"
   printf '#!/bin/sh\n%s\n' "${2:-printf '%s\n' "$1 \$*"}" >"${SANDBOX}/bin/${1}"
-  chmod +x -- "${SANDBOX}/bin/${1}"
+  chmod +x "${SANDBOX}/bin/${1}"
 }
 
 # Wait until a command succeeds, at most a few seconds (for the shells' background jobs)

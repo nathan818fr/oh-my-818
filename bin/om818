@@ -323,7 +323,7 @@ history_import() {
   for shell in zsh bash; do
     old="${HOME}/.${shell}_history"
     new="$(history_file "$shell")"
-    if [ -f "$new" ]; then chmod 600 -- "$new" 2>/dev/null || true; fi
+    if [ -f "$new" ]; then chmod 600 "$new" 2>/dev/null || true; fi
     if [ -e "$new" ]; then continue; fi
     if own="$(history_own_files "$shell" | head -n 1)" && [ -n "$own" ]; then
       info "$(tilde "$own") sets HISTFILE: that ${shell} history isn't copied (only"

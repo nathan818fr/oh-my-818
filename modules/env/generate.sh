@@ -138,7 +138,7 @@ env_sandbox_only() {
     for cmd in $om818_sandbox_only; do
       case "$cmd" in '' | . | .. | */* | *[!A-Za-z0-9._+-]*) continue ;; esac
       env_sandbox_wrapper "$cmd" "$dir" "${tests:-false}" "${names:-none}" >"${new}/${cmd}"
-      chmod +x -- "${new}/${cmd}"
+      chmod +x "${new}/${cmd}"
     done
     rm -rf -- "$dir"
     mv -- "$new" "$dir"

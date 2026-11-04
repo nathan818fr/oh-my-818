@@ -102,7 +102,7 @@ function test_a_failing_integration_stops_the_generation() {
   # Homebrew whose `brew --prefix` fails: no environment with an empty prefix, the old one stays
   home_file .linuxbrew/bin/brew '#!/bin/sh
 exit 1'
-  chmod +x -- "${SANDBOX}/home/.linuxbrew/bin/brew"
+  chmod +x "${SANDBOX}/home/.linuxbrew/bin/brew"
   run "${SANDBOX}/home/.local/share/om818/bin/om818" env
   assert_status 1
   if grep -q HOMEBREW "${SANDBOX}/home/${ENV_FILE}"; then fail 'a broken environment'; fi
@@ -117,7 +117,7 @@ function test_homebrew_prefix_must_be_absolute() {
   for prefix in home/.linuxbrew "${SANDBOX}/home/missing"; do
     home_file .linuxbrew/bin/brew '#!/bin/sh
 echo '"$prefix"
-    chmod +x -- "${SANDBOX}/home/.linuxbrew/bin/brew"
+    chmod +x "${SANDBOX}/home/.linuxbrew/bin/brew"
     run "${SANDBOX}/home/.local/share/om818/bin/om818" env --quiet
     run sh -c '. "$HOME/'"$ENV_FILE"'"; echo "prefix=${HOMEBREW_PREFIX:-} $PATH"'
     assert_output_contains 'prefix= '
@@ -150,7 +150,7 @@ case "$1" in
 --prefix) echo "$HOME/.linuxbrew" ;;
 --repository) echo "$HOME/.linuxbrew/repo" ;;
 esac'
-  chmod +x -- "${SANDBOX}/home/.linuxbrew/bin/brew"
+  chmod +x "${SANDBOX}/home/.linuxbrew/bin/brew"
   mkdir -p -- "${SANDBOX}/home/.linuxbrew/share/zsh/site-functions"
   install
   run sh -c '. "$HOME/'"$ENV_FILE"'"; echo "$HOMEBREW_PREFIX $PATH"'
@@ -195,7 +195,7 @@ function test_sandbox_only() {
   # even from ~/.local/bin, which the environment puts in front of the rest
   home_file .config/om818/config.sh 'om818_sandbox_only=(claude)'
   home_file .local/bin/claude 'echo "claude $*"'
-  chmod +x -- "${SANDBOX}/home/.local/bin/claude"
+  chmod +x "${SANDBOX}/home/.local/bin/claude"
   install
   cmd='. "$HOME/'"$ENV_FILE"'"; claude hi'
   # (the machine running the tests may be a container itself, e.g. CI's Alpine job)
@@ -222,7 +222,7 @@ function test_sandbox_only() {
   # (-e: macOS's sed takes a -- after the script for a file name)
   sed -e "s|${SANDBOX}/home/|/home/other/|g" -- \
     "${SANDBOX}/home/.local/state/om818/sandbox-only/claude" >"${other}/claude"
-  chmod +x -- "${other}/claude"
+  chmod +x "${other}/claude"
   RUN_TIMEOUT=5 run DROP_ENV=dev sh -c '. "$HOME/'"$ENV_FILE"'"
     PATH="'"$other"':$PATH"; claude hi'
   assert_output_eq 'claude hi'
@@ -237,7 +237,7 @@ function test_sandbox_wrapper_edge_cases() {
   local dir="${SANDBOX}/home/.local/state/om818/sandbox-only"
   home_file .config/om818/config.sh 'om818_sandbox_only=(. .. claude codex)'
   home_file .local/bin/claude 'echo "claude $*"'
-  chmod +x -- "${SANDBOX}/home/.local/bin/claude"
+  chmod +x "${SANDBOX}/home/.local/bin/claude"
   install
   # A listed command that isn't installed: not found, wherever it runs
   run sh -c '. "$HOME/'"$ENV_FILE"'"; codex'
