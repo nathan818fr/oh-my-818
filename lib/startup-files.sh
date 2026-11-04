@@ -168,8 +168,11 @@ wire_startup_files() {
   if command -v zsh >/dev/null 2>&1; then find_zdotdir; fi
   release_startup_files
   if command -v zsh >/dev/null 2>&1; then
-    # ZDOTDIR: kept when something already sets it, else ~/.config/zsh
-    if [ -z "$_OM818_ZSH_ZDOTDIR" ]; then
+    # ZDOTDIR: kept when something already sets it, else ~/.config/zsh. Set to ~/.config/zsh
+    # already, the line is added too: Alpine's /etc/zsh/zshenv sets it only while the home has no
+    # zsh file, and the ~/.zshenv made below would stop it
+    if [ -z "$_OM818_ZSH_ZDOTDIR" ] ||
+      [ "$_OM818_ZSH_ZDOTDIR" = "${XDG_CONFIG_HOME:-${HOME}/.config}/zsh" ]; then
       # (the line itself: a ZDOTDIR= in a comment sets nothing, zsh said so above)
       wire_line "${HOME}/.zshenv" "$_OM818_STARTUP_ZDOTDIR_LINE" "$_OM818_STARTUP_ZDOTDIR_LINE" \
         "sets ZDOTDIR (zsh's files in ~/.config/zsh)" create

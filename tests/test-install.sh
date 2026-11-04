@@ -1240,6 +1240,19 @@ function test_zdotdir_only_with_its_zshrc() {
   assert_output_eq 'none'
 }
 
+# A system zshenv setting ZDOTDIR to ~/.config/zsh only while the home has no zsh file (Alpine's):
+# the line is added anyway, as the ~/.zshenv the install makes stops it
+function test_zdotdir_line_when_the_system_sets_it() {
+  fake_tool zsh 'for f in .zshenv .zprofile .zshrc .zlogin; do
+  if [ -e "$HOME/$f" ]; then exec '"${TEST_DIR}/sysbin/zsh"' "$@"; fi
+done
+if [ -z "${ZDOTDIR:-}" ]; then export ZDOTDIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"; fi
+exec '"${TEST_DIR}/sysbin/zsh"' "$@"'
+  install
+  run zsh -c 'print -r -- "${ZDOTDIR:-none}"'
+  assert_output_eq "${SANDBOX}/home/.config/zsh"
+}
+
 # A ZDOTDIR= in a comment of ~/.zshenv sets nothing: the om818 line is still added
 function test_commented_zdotdir() {
   home_file .zshenv '# ZDOTDIR=~/old (kept for later)'
