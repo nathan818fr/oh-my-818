@@ -38,8 +38,7 @@ jobs:
       - if: steps.changed.outputs.changed == 'true'
         uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
-          # (not written: upstream code runs in this job, CI's jobs read the cache)
-          cache_save: false
+          cache: false
         env:
           MISE_LOCKED: 1
       - name: Install zsh and tmux
@@ -79,7 +78,8 @@ jobs:
       # Only files in vendor/. Before applying: a diff that names another path, renames or copies
       # is refused (-a: a NUL byte would make grep take the diff for binary, and match nothing).
       # After: anything in vendor/ other than files and folders (a link, however its mode is
-      # spelled), or any change outside vendor/ (ignored files included)
+      # spelled), what would hide a change from the review (.gitattributes, a NUL byte: shown as
+      # binary), or any change outside vendor/ (ignored files included)
       - name: Apply
         env:
           DIFF: ${{ runner.temp }}/vendor-diff/vendor.diff
@@ -95,6 +95,11 @@ jobs:
           git apply "$DIFF"
           if [[ -n "$(find vendor ! -type f ! -type d -print -quit)" ]]; then
             echo 'error: the diff made something other than a file in vendor/ (a link?)' >&2
+            exit 1
+          fi
+          if [[ -n "$(find vendor -name '.*' -print -quit)" ]] ||
+            LC_ALL=C grep -rqaP '\x00' vendor; then
+            echo 'error: the diff would hide changes from the review (dot file, NUL byte)' >&2
             exit 1
           fi
           if [[ -n "$(git status --porcelain --untracked-files=all --ignored -- . ':!vendor')" ]]

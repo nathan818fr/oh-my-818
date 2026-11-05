@@ -1,7 +1,10 @@
-# The actions of the workflows are pinned by commit: Dependabot proposes their updates
+# The actions of the workflows are pinned by commit: Dependabot proposes their updates, a week
+# after their release (a bad one is usually caught by then)
 version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
