@@ -1,5 +1,7 @@
 # Contributing
 
+This is a personal project: a pull request may not be reviewed or merged.
+
 ## Setup
 
 You need git, zsh, bash 4.4+ (macOS: `brew install bash`), tmux (for the terminal tests, skipped

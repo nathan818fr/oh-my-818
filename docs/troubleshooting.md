@@ -6,7 +6,8 @@ What to check when something goes wrong, and notes per system.
 
 It shows what is set up: versions, startup files, settings, each integration and why it is on or
 off. Rows marked `!` need action and say how. Share it when asking for help
-([open an issue](https://github.com/nathan818fr/oh-my-818/issues)), after reading it: it shows
+([open an issue](https://github.com/nathan818fr/oh-my-818/issues), no promise of an answer), after
+reading it: it shows
 your home folder as `~` and leaves out most settings, but it does show some of your setup (tool
 paths, `TERM` and `LANG`, the start of a tool's error).
 

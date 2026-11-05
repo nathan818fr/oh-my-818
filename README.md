@@ -13,6 +13,10 @@ A ready-to-use setup for zsh and bash:
 
 Linux first, also macOS and WSL.
 
+> **A personal project, shared as is.** I made oh-my-818 for my own use and share it with friends.
+> You're welcome to use it too, but I don't plan to add features for things I don't use, and I
+> don't have time to provide support.
+
 ![A terminal session: the prompt in the home folder, then in a git repository with its status,
 in a drop sandbox, after a failed cargo test](.github/prompt.png)
 
@@ -85,7 +89,8 @@ om818 help        the other commands
 [All the settings](defaults.sh) · [Contributing](CONTRIBUTING.md)
 
 Something wrong? `om818 status`, then
-[open an issue](https://github.com/nathan818fr/oh-my-818/issues) with its output.
+[open an issue](https://github.com/nathan818fr/oh-my-818/issues) with its output (no promise of an
+answer).
 
 ## License
 
