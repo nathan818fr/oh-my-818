@@ -1,0 +1,39 @@
+name: Lint
+
+# On every change, docs included (their links and format are checked), unlike the tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+# A newer push to the same PR cancels its run in progress. A push to main is never cancelled
+concurrency:
+  group: lint-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Require the lockfile
+        run: test -s .config/mise.lock
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+        with:
+          # (no cache: the vendor workflow runs upstream code, which could write one)
+          cache: false
+        env:
+          # Tools only from .config/mise.lock: fails when it misses one
+          MISE_LOCKED: 1
+      - name: Install zsh
+        run: sudo apt-get update && sudo apt-get install -y zsh
+      - name: Lint
+        run: mise run lint

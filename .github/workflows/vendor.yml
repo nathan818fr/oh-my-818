@@ -1,7 +1,7 @@
 name: Vendor update
 
-# Once a month, a PR moving the code in vendor/ to its upstream's latest commit: reviewed and
-# merged by hand. Two jobs: the upstream code runs (lint, tests) only in the first, which can't
+# Once a month, a PR moving the code in vendor/ to its upstream's latest commit, when it moved:
+# reviewed and merged by hand. Two jobs: the upstream code runs (lint, tests) only in the first, which can't
 # write to the repository; the second, which can, only applies the diff to vendor/ and opens the
 # PR.
 on:
@@ -20,32 +20,47 @@ jobs:
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      changed: ${{ steps.changed.outputs.changed }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Update vendor/
         run: tools/vendor-update --latest
-      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+      # Nothing new upstream: the steps below and the second job don't run
+      - name: Anything new?
+        id: changed
+        run: |
+          changed=false
+          if [[ -n "$(git status --porcelain -- vendor)" ]]; then changed=true; fi
+          printf '%s=%s\n' changed "$changed" >>"$GITHUB_OUTPUT"
+      - if: steps.changed.outputs.changed == 'true'
+        uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
           # (not written: upstream code runs in this job, CI's jobs read the cache)
           cache_save: false
         env:
           MISE_LOCKED: 1
       - name: Install zsh and tmux
+        if: steps.changed.outputs.changed == 'true'
         run: sudo apt-get update && sudo apt-get install -y zsh tmux
-      # Checked here: a PR opened with the workflow's token doesn't run the CI workflow
+      # Checked here, before the PR: CI on a PR opened by this workflow waits for a person's approval
       - name: Lint and test
+        if: steps.changed.outputs.changed == 'true'
         run: mise run lint && mise run test
       - name: Diff
+        if: steps.changed.outputs.changed == 'true'
         run: git add -A vendor && git diff --cached --binary --no-renames -- vendor >vendor.diff
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - if: steps.changed.outputs.changed == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: vendor-diff
           path: vendor.diff
 
   pr:
     needs: update
+    if: needs.update.outputs.changed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

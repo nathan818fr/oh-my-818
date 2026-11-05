@@ -17,7 +17,7 @@ mise run vendor-update   refresh vendor/ from vendor/sources.txt
 
 One test file: `tests/run tests/test-prompt.sh`; one test: `bash tests/test-prompt.sh test_colors`.
 Run one suite at a time: each starts many shells. CI runs the lint, and the tests on Ubuntu,
-macOS and bash 4.4 (Alpine).
+macOS and bash 4.4 (Alpine). A change that only touches docs runs just the lint.
 
 A pull request: lint and tests pass, plus a line in `CHANGELOG.md` under `## Unreleased` when
 users notice the change.

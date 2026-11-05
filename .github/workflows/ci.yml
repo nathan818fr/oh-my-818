@@ -1,11 +1,17 @@
 name: CI
 
-# On main, on release tags, and on pull requests (a branch of a PR runs once, as the PR)
+# The tests, on main and on pull requests (a branch of a PR runs once, as the PR), unless a change
+# only touches what they don't use. Tags don't run them: a release is a commit main already tested
 on:
   push:
     branches: [main]
-    tags: ["v*"]
+    paths-ignore: &not-tested
+      - "docs/**"
+      - "**.md"
+      - LICENSE
+      - .github/prompt.png
   pull_request:
+    paths-ignore: *not-tested
 
 defaults:
   run:
@@ -14,32 +20,12 @@ defaults:
 permissions:
   contents: read
 
-# A newer push to the same PR cancels its run in progress. A push to main or a tag is grouped by
-# its commit: never cancelled (a tag on main's commit waits for main's run)
+# A newer push to the same PR cancels its run in progress. A push to main is never cancelled
 concurrency:
   group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Require the lockfile
-        run: test -s .config/mise.lock
-      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
-        with:
-          # (no cache: the vendor workflow runs upstream code, which could write one)
-          cache: false
-        env:
-          # Tools only from .config/mise.lock: fails when it misses one
-          MISE_LOCKED: 1
-      - name: Install zsh
-        run: sudo apt-get update && sudo apt-get install -y zsh
-      - name: Lint
-        run: mise run lint
-
   test:
     strategy:
       fail-fast: false
