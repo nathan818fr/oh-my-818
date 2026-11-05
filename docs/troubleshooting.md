@@ -68,7 +68,6 @@ To check whether oh-my-818 causes a problem, start a shell without it: `zsh -f` 
 
 - Each user installs for themselves, root too (`sudo -i` first, not `sudo` in front of the
   install line).
-- `om818_update=auto` keeps a server up to date by itself.
 - Alpine: after `chsh -s /bin/bash`, log out and back in before installing.
 - Over SSH, a server missing your locale shows plain symbols (basic mode); `su - user` hides the
   host from the prompt (`om818_prompt_host=on` in that user's `config.sh`).

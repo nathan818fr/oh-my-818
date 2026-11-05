@@ -61,7 +61,6 @@ A `~/.zshrc` in chezmoi is no longer read: copy its content to `shell.d/`, then 
 
 - To skip the install on some machine, make the script a template
   (`run_onchange_after_install-om818.sh.tmpl`) and wrap its content in `{{ if … }}…{{ end }}`.
-- `om818_update=auto` in your `config.sh` keeps every machine up to date by itself.
 
 ## To stop using it
 
