@@ -198,7 +198,8 @@ printf "%s\n" "#compdef deno" "complete -F _deno deno"'
   if [[ -n "$(find "${SANDBOX}/home/.cache/om818" -name '*.config.*')" ]]; then
     fail 'its throwaway config left'
   fi
-  # Nix: upgraded to another store path, the same time
+  # Nix: upgraded to another store path, the same time (never with busybox)
+  if sh_is_busybox; then return 0; fi
   store_tool deno a
   for shell in zsh bash; do shell_i "$shell" ':'; done
   wait_for test -s "${SANDBOX}/home/.cache/om818/bash-completion/completions-bin/deno"

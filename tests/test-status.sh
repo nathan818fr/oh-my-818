@@ -44,6 +44,8 @@ function test_reports_problems() {
   home_file .config/om818/config.sh 'om818_promt_date_tz=UTC
 om818_fzf=on
 om818_xdg_go=off'
+  # (older than config.sh for sure: busybox's sh compares whole seconds)
+  touch -t 200001010000 -- "${SANDBOX}/home/.local/state/om818/env.sh"
   run "${SANDBOX}/home/${OM818}" status
   assert_output_contains '! ~/.bash_profile: no om818 line: bash login shells read it instead'
   assert_output_contains '! ~/.zshrc: not read (zsh reads ~/.config/zsh/.zshrc)'

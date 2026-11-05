@@ -97,7 +97,8 @@ function test_mise_shims() {
 }
 
 function test_a_failing_integration_stops_the_generation() {
-  if system_brew; then return 0; fi
+  # (busybox's sh drops errexit inside $(…); and Homebrew doesn't run on musl)
+  if system_brew || sh_is_busybox; then return 0; fi
   install
   # Homebrew whose `brew --prefix` fails: no environment with an empty prefix, the old one stays
   home_file .linuxbrew/bin/brew '#!/bin/sh

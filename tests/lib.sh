@@ -291,6 +291,12 @@ function bash_i() {
 }
 
 # Whether the terminal tests can run here (tmux installed): they skip otherwise
+# Whether sh is busybox's (Alpine), for the rare setups the tests leave out there (no code for
+# them: docs/troubleshooting.md's Limits)
+function sh_is_busybox() {
+  [[ "$(sh --help 2>&1)" == *BusyBox* ]]
+}
+
 function tty_available() {
   [[ -x "${TEST_DIR}/sysbin/tmux" ]]
 }
