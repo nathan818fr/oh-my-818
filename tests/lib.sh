@@ -64,7 +64,8 @@ function run_tests() {
   fi
 
   TEST_DIR="$(mktemp -d)"
-  trap 'rm -rf -- "$TEST_DIR"' EXIT
+  # (never fatal, like each test's: errexit would make a process still writing fail the whole run)
+  trap 'rm -rf -- "$TEST_DIR" || true' EXIT
   # (the runners': private folders the temporary install checks, e.g. not group-writable)
   umask 022
   limit_processes
@@ -145,11 +146,13 @@ function kill_leftovers() {
   while IFS= read -r sid; do
     # (nothing left, the usual case: no scan of every process)
     if ! kill -0 -- "-${sid}" 2>/dev/null; then continue; fi
-    # Without ps -s (busybox, BSD): a few rounds, blind
+    # Without ps -s (busybox, BSD): a few rounds, blind (macOS has no pkill -s either: only the
+    # session's first process group, where a shell without job control keeps its background jobs)
     if ! ps -o stat= -s "$sid" >/dev/null 2>&1; then
       for _ in 1 2 3; do
         pkill -STOP -s "$sid" 2>/dev/null || true
         pkill -KILL -s "$sid" 2>/dev/null || true
+        kill -KILL -- "-${sid}" 2>/dev/null || true
       done
       continue
     fi
