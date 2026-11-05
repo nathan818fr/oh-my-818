@@ -16,9 +16,12 @@ om818_shell=bash
 # `hash` skips names that are also functions (e.g. mise once activated). Windows' folders in WSL
 # are skipped (slow, and no tool of ours is there)
 function _om818_which() {
-  local - dir IFS=:
-  set -f # no globbing of PATH's folders (local -: restored on return)
-  for dir in $PATH; do
+  # (split by hand: unquoted, it needs set -f, restored by `local -`, and when a function with it
+  # returns, bash 4.4 starts recording what follows in the startup files in the user's history)
+  local dir rest="${PATH}:"
+  while [[ "$rest" == *:* ]]; do
+    dir="${rest%%:*}"
+    rest="${rest#*:}"
     if [[ -n "${WSL_DISTRO_NAME:-}" && "$dir" == /mnt/[a-z]/* ]]; then continue; fi
     if [[ -n "$dir" && -f "${dir}/${1}" && -x "${dir}/${1}" ]]; then
       REPLY="${dir}/${1}"

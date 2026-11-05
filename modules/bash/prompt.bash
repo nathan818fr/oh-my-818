@@ -183,9 +183,12 @@ _om818_prompt_git_started=0
 # usage: _om818_prompt_git_start <gitstatus_start options>...
 function _om818_prompt_git_start() {
   local pipe_trap
-  # (gitstatus's code fails with set -u, which some users have in their .bashrc)
-  local -
-  set +u
+  # (gitstatus's code fails with set -u, which some users have in their .bashrc. `local -` only
+  # then: when a function with it returns, bash 4.4 records the startup files' lines in the history)
+  if [[ -o nounset ]]; then
+    local -
+    set +u
+  fi
   gitstatus_stop 2>/dev/null
   _om818_prompt_git_started=0
   # gitstatus_start writes to the daemon it started: when the daemon exits at once (not
@@ -204,9 +207,12 @@ function _om818_prompt_git_start() {
 # gitstatus_query); past the timeout, with VCS_STATUS_RESULT=tout. Status 1 without gitstatusd
 # usage: _om818_prompt_git_query <timeout> <callback>
 function _om818_prompt_git_query() {
-  local -
   if [[ "$_om818_prompt_git_started" -eq 0 ]]; then return 1; fi
-  set +u
+  # (as in _om818_prompt_git_start)
+  if [[ -o nounset ]]; then
+    local -
+    set +u
+  fi
   # The daemon may have died since (a crash, the OOM killer): writing to it would raise SIGPIPE,
   # which kills the shell. Ignored meanwhile, then the user's PIPE trap back: the one set when
   # the first prompt came (read once: a fork). A dead daemon is stopped: no git status from then on
