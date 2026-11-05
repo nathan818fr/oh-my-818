@@ -4,7 +4,7 @@
 # name           repo                       commit                                    paths
 zsh-defer        romkatv/zsh-defer          53a26e287fbbe2dcebb3aa1801546c6de32416fa  zsh-defer zsh-defer.plugin.zsh LICENSE
 ez-compinit      mattmc3/ez-compinit        5c9b6da88a463573e26e6846ff164026640ef2f6  ez-compinit.plugin.zsh functions LICENSE
-ohmyzsh          ohmyzsh/ohmyzsh            d2b7f557cceaddb16ba89bbf8200d8a8df35c4d8  lib/key-bindings.zsh LICENSE.txt
-gitstatus        romkatv/gitstatus          7822a026b77fb810e74055836d62cbe5b133eade  gitstatus.plugin.zsh gitstatus.plugin.sh install install.info build.info LICENSE
+ohmyzsh          ohmyzsh/ohmyzsh            b509b1c6ed0c1ba37de12cbd37f30b2b2f61193a  lib/key-bindings.zsh LICENSE.txt
+gitstatus        romkatv/gitstatus          5433ecbb9a572d6c92be9feb33642395fccc782b  gitstatus.plugin.zsh gitstatus.plugin.sh install install.info build.info LICENSE
 zsh-completions  zsh-users/zsh-completions  989b23277ab33e8d5e82df6aed936e846db9d8b8  src LICENSE
 bash-preexec     rcaloras/bash-preexec      5ae4758c36e8391fb3932e6ae68c283489fc813d  bash-preexec.sh LICENSE.md
