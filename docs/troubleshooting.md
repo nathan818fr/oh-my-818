@@ -49,9 +49,10 @@ To check whether oh-my-818 causes a problem, start a shell without it: `zsh -f` 
 
 ### macOS
 
-- `/bin/bash` is too old (3.2): only zsh gets the setup. For a newer bash:
-  `brew install bash bash-completion@2`, add `$(brew --prefix)/bin/bash` to `/etc/shells`, make
-  it your shell (`chsh -s`), then `om818 install`.
+- `/bin/bash` is too old (3.2): only zsh gets the setup. If your shell is still `/bin/bash`:
+  `chsh -s /bin/zsh`. For a newer bash: `brew install bash bash-completion@2`, add
+  `$(brew --prefix)/bin/bash` to `/etc/shells`, make it your shell (`chsh -s`), then in a new
+  terminal `om818 install`.
 - Homebrew's `brew shellenv` line in `~/.zprofile` isn't needed: run `om818 env` after
   installing Homebrew.
 - Apps started from the Dock don't get your `env.d/` variables.

@@ -116,4 +116,4 @@ jobs:
           body: |
             `tools/vendor-update --latest`: each entry of `vendor/sources.txt` moved to its
             upstream's latest commit. Lint and tests passed on it in the workflow, on Ubuntu
-            only (this PR doesn't trigger the CI workflow). Review the diff before merging.
+            only (CI on this PR waits for a person's approval). Review the diff before merging.

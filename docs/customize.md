@@ -78,9 +78,10 @@ om818_sandbox_only=(claude codex)
 om818_sandboxes=(drop container)   # the default
 ```
 
-`container` means a podman or docker container (or another that sets `$container`). toolbox
-and distrobox don't count unless you add `toolbox` or `distrobox`: they share your whole home
-folder. `chroot` and `flatpak` are also possible.
+[drop](https://github.com/wrr/drop) is a sandbox tool. `container` means a podman or docker
+container (or another that sets `$container`). toolbox and distrobox don't count unless you add
+`toolbox` or `distrobox`: they share your whole home folder. `chroot` and `flatpak` are also
+possible.
 
 Outside a sandbox, `claude` then stops with a hint, whoever runs it: your terminals, scripts, and
 IDEs started from your Linux desktop (after logging in again), since they find it on PATH. Inside

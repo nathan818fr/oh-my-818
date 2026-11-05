@@ -82,9 +82,10 @@ one by breaking that code once.
 ## Releases
 
 1. Rename `## Unreleased` in `CHANGELOG.md` to `## vX.Y.Z` (`om818 update` prints these
-   sections: keep that heading format).
+   sections: keep that heading format), and commit it to `main`.
 2. Tag a green `main`: `git tag vX.Y.Z && git push origin vX.Y.Z`.
-3. Add a new `## Unreleased` section for the next changes.
+3. Try the real install line once on a clean machine: the tests only use local copies.
+4. Add a new `## Unreleased` section for the next changes.
 
 New terminals see a new release within a day. Only `vX.Y.Z` tags are releases; don't move or
 delete a pushed one: a machine on a deleted tag gets no more notices or automatic updates. Fix a

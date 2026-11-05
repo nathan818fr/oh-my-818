@@ -27,8 +27,8 @@ om818_protect_startup_files=off
 # scripts, IDEs), e.g. (claude codex): elsewhere they stop with a hint. A reminder, not
 # isolation: OM818_SANDBOX_ONLY=off claude runs one anyway
 om818_sandbox_only=()
-# What counts as one: drop, container (podman, docker…), toolbox, distrobox (these two share your
-# home folder), chroot, flatpak
+# What counts as one: drop (github.com/wrr/drop), container (podman, docker…), toolbox, distrobox
+# (these two share your home folder), chroot, flatpak
 om818_sandboxes=(drop container)
 
 ### Integrations: auto (on when the tool is found), on, or off
