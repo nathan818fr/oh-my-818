@@ -87,5 +87,6 @@ one by breaking that code once.
 3. Add a new `## Unreleased` section for the next changes.
 
 New terminals see a new release within a day. Only `vX.Y.Z` tags are releases; don't move or
-delete a pushed one. `install.sh` runs from main for every release: change `--temp`'s layout only
-in ways every release still reads (`OM818_REF` can pick an older one).
+delete a pushed one: a machine on a deleted tag gets no more notices or automatic updates. Fix a
+bad release with a higher tag. `install.sh` runs from main for every release: change `--temp`'s
+layout only in ways every release still reads (`OM818_REF` can pick an older one).
