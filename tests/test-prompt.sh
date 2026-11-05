@@ -283,7 +283,7 @@ function test_jobs() {
   # finished job bash hasn't reported yet isn't counted; without one, bash drops it at once)
   run bash -c 'printf "%s\n" "sleep 30 &" "kill %1" "sleep 0.2" ":" |
     bash --rcfile ~/.bashrc -i 2>&1 >/dev/null |
-    tr -d "\001\002" | sed "s/\x1b\[[0-9;]*m//g; s/\x1b\]2;[^\a]*\a//g"'
+    tr -d "\001\002" | sed -e "$1"' _ $'s/\e\\[[0-9;]*m//g; s/\e\\]2;[^\a]*\a//g' # (macOS: no \x1b)
   assert_output_contains '⚙1 $'
   if [[ "${OUTPUT##*$'\n'}" != '$ '* ]]; then fail 'a job after it was killed'; fi
 }

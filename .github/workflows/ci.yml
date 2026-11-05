@@ -69,8 +69,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Test
         run: |
-          # As a user: root ignores read-only files, which the tests check
+          # As a user: root ignores read-only files, which the tests check. Without Docker's
+          # marker: the prompt would show (docker) where the tests expect no environment
           docker run --rm -v "${PWD}:/src:ro" docker.io/library/bash:4.4 sh -c \
-            'apk add --no-cache git zsh tmux >/dev/null && adduser -D tester &&
+            'rm /.dockerenv && apk add --no-cache git zsh tmux >/dev/null && adduser -D tester &&
             cp -r /src /home/tester/src && chown -R tester /home/tester/src &&
             su tester -s /bin/sh -c "cd ~/src && bash tests/run"'

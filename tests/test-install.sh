@@ -1288,7 +1288,11 @@ function test_temp_history_of_an_installed_account() {
     if ! wait_for grep -qs "temp-${shell}" "$file"; then
       fail "${shell}: not in ~/.local/state/${shell}/history: $(ls -A -- "${SANDBOX}/home")"
     fi
-    if [[ "$shell" == bash ]] && ! wait_for grep -qs "login shell: the temporary install's" \
+    # (to its end, in both shells: closing the terminal during it could leave its probe's shell)
+    if ! wait_for grep -qsE 'All good|to fix \(marked' "${SANDBOX}/status-${shell}"; then
+      fail "${shell}, no status: $(cat -- "${SANDBOX}/status-${shell}" 2>/dev/null)"
+    fi
+    if [[ "$shell" == bash ]] && ! grep -qs "login shell: the temporary install's" \
       "${SANDBOX}/status-${shell}"; then
       fail "status: $(cat -- "${SANDBOX}/status-${shell}" 2>/dev/null)"
     fi
