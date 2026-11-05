@@ -1253,6 +1253,35 @@ exec '"${TEST_DIR}/sysbin/zsh"' "$@"'
   assert_output_eq "${SANDBOX}/home/.config/zsh"
 }
 
+# VS Code's terminal exports ZDOTDIR=$HOME: the install is the same as elsewhere. Set on purpose
+# in ~/.zshenv, it stays
+function test_zdotdir_set_to_home() {
+  home_file .zshrc 'alias ll="ls -l"'
+  install ZDOTDIR="${SANDBOX}/home"
+  assert_file_contains .zshenv 'export ZDOTDIR='
+  assert_file_contains .config/zsh/.zshrc ' # om818'
+  if grep -q ' # om818$' "${SANDBOX}/home/.zshrc"; then fail 'added to ~/.zshrc'; fi
+  run "${SANDBOX}/home/.local/share/om818/bin/om818" uninstall
+  assert_status 0
+
+  home_file .zshenv 'export ZDOTDIR="$HOME"'
+  install
+  assert_file_contains .zshrc ' # om818'
+  if grep -q 'ZDOTDIR=.* # om818$' "${SANDBOX}/home/.zshenv"; then fail 'ZDOTDIR line added'; fi
+}
+
+# Uninstalling with the user's own line setting ZDOTDIR to ~/.config/zsh: zsh stays on that folder
+function test_uninstall_with_your_own_zdotdir_line() {
+  home_file .zshenv 'export ZDOTDIR="$HOME/.config/zsh"'
+  home_file .config/zsh/.zshrc 'alias ll="ls -l"'
+  install
+  run "${SANDBOX}/home/.local/share/om818/bin/om818" uninstall
+  assert_status 0
+  assert_output_not_contains 'zsh reads ~/.zshrc again'
+  assert_file_contains .zshenv 'export ZDOTDIR="$HOME/.config/zsh"'
+  assert_file_contains .config/zsh/.zshrc 'alias ll="ls -l"'
+}
+
 # A ZDOTDIR= in a comment of ~/.zshenv sets nothing: the om818 line is still added
 function test_commented_zdotdir() {
   home_file .zshenv '# ZDOTDIR=~/old (kept for later)'

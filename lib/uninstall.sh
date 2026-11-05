@@ -108,6 +108,9 @@ EOF
     done
   fi
   if [ -n "$zrc" ] && ! grep -qs 'ZDOTDIR=.* # om818$' "${HOME}/.zshenv"; then
+    # (a line of the user's, or the system's, may keep zsh on that folder)
+    find_zdotdir
+    if [ -n "$_OM818_ZSH_ZDOTDIR" ]; then return 0; fi
     if [ -s "$zrc" ] && [ -n "$restored" ]; then
       info "zsh reads ~/.zshrc again, not $(tilde "$zrc"): copy the lines you added there since."
     elif [ -s "$zrc" ]; then

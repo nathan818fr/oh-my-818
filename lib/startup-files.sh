@@ -38,9 +38,11 @@ _OM818_STARTUP_TODO=0
 # sets it
 find_zdotdir() {
   # An inherited ZDOTDIR of oh-my-818's own path is left out: the session may come from an
-  # install since removed (a reinstall before logging out); zsh tells whether it is still set
+  # install since removed (a reinstall before logging out). So is one set to HOME: VS Code's
+  # terminal exports it. zsh tells whether they are still set
   # shellcheck disable=SC2016
-  if [ -n "${ZDOTDIR:-}" ] && [ "$ZDOTDIR" != "${XDG_CONFIG_HOME:-${HOME}/.config}/zsh" ]; then
+  if [ -n "${ZDOTDIR:-}" ] && [ "$ZDOTDIR" != "$HOME" ] &&
+    [ "$ZDOTDIR" != "${XDG_CONFIG_HOME:-${HOME}/.config}/zsh" ]; then
     _OM818_ZSH_ZDOTDIR="$ZDOTDIR"
   elif command -v zsh >/dev/null 2>&1; then
     # (also without ~/.zshenv: the system's zshenv may set it)
