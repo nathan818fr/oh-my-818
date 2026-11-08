@@ -248,6 +248,14 @@ om818_mise=on'
   if [[ "$OUTPUT" != *$'\n\nAll good.' ]]; then fail 'not all good'; fi
 }
 
+function test_completion_off_turns_tool_completions_off() {
+  # Generated completions that nothing would load: off, with the reason (no "!": nothing to fix)
+  home_file .config/om818/config.sh 'om818_completion=off'
+  install
+  run "${SANDBOX}/home/${OM818}" status
+  assert_output_contains $'\n  tool_completions  off  om818_completion=off\n'
+}
+
 function test_update_file_runs_nothing() {
   install
   # shellcheck disable=SC2016 # written as is

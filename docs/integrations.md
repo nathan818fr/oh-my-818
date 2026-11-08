@@ -51,7 +51,7 @@ another account (a shared Mac) is left out: its commands could run code as you.
 
 Generates completions for gh, rg, fd, uv, rustup, cargo, mise, podman, docker, kubectl, helm,
 just, deno… ([the list](../integrations/tool_completions/tools.list)) when their package ships
-none.
+none. Off with `om818_completion=off`.
 
 ## xdg
 
