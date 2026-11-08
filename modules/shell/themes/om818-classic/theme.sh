@@ -35,7 +35,7 @@ function prompt_om818-classic_setup() {
   local -a reply
   # The keys of the color and symbol tables this theme uses
   local -a color_keys=(
-    user host root path date ok err env duration jobs indicator indicator_bracket
+    user root path date ok err env duration jobs indicator indicator_bracket
     env_drop env_container env_chroot env_ssh env_flatpak env_nix env_flox env_venv env_conda
     git_bracket git_branch git_action git_remote git_no_upstream git_staged git_conflicts
     git_changed git_untracked git_stashes git_unknown git_clean
@@ -118,9 +118,11 @@ function prompt_om818-classic_setup() {
 
   # State: the text of each segment, the directory of the git segment, the running command's
   # start time (microseconds), the last background job ($!), and what doesn't change: the
-  # container we are in
+  # container we are in, whether we are root
   typeset -gA _om818_classic_parts=()
   typeset -g _om818_classic_git_pwd='' _om818_classic_cmd_start='' _om818_classic_container=''
+  typeset -g _om818_classic_root=0
+  if [[ "$EUID" -eq 0 ]]; then _om818_classic_root=1; fi
   typeset -g _om818_classic_last_bg="${!:-}" _om818_classic_indicators_checked=0
   REPLY=''
   prompt_om818-classic_container
@@ -409,27 +411,26 @@ function prompt_om818-classic_segment_duration() {
   REPLY="${_om818_classic_c[duration]}${REPLY}${_om818_classic_reset}"
 }
 
-# The user (root in its color; om818_prompt_default_user hidden), then @host when it shows
-# (om818_prompt_host)
+# The user (om818_prompt_default_user hidden), then @host when it shows (om818_prompt_host), in
+# the account's color: user, or root
 function prompt_om818-classic_segment_user() {
   local name user host=''
+  local color="${_om818_classic_c[user]}"
+  if [[ "$_om818_classic_root" -eq 1 ]]; then color="${_om818_classic_c[root]}"; fi
   _om818_prompt_username
   name="$REPLY"
   _om818_prompt_user
   user="$REPLY"
-  if [[ "$EUID" -eq 0 ]]; then
-    user="${_om818_classic_c[root]}${user}${_om818_classic_reset}"
-  elif [[ -n "$om818_prompt_default_user" && "$name" == "$om818_prompt_default_user" ]]; then
+  if [[ "$_om818_classic_root" -eq 0 && -n "$om818_prompt_default_user" &&
+    "$name" == "$om818_prompt_default_user" ]]; then
     user=''
-  else
-    user="${_om818_classic_c[user]}${user}${_om818_classic_reset}"
   fi
   if [[ -n "$_om818_host" ]]; then
     _om818_prompt_text "$_om818_host"
-    host="${_om818_classic_c[host]}${user:+${_om818_classic_s[host_separator]}}${REPLY}"
-    host+="${_om818_classic_reset}"
+    host="${user:+${_om818_classic_s[host_separator]}}${REPLY}"
   fi
-  REPLY="${user}${host}"
+  REPLY=''
+  if [[ -n "${user}${host}" ]]; then REPLY="${color}${user}${host}${_om818_classic_reset}"; fi
 }
 
 function prompt_om818-classic_segment_path() {
@@ -478,7 +479,7 @@ function prompt_om818-classic_segment_indicators() {
 }
 
 function prompt_om818-classic_segment_symbol() {
-  if [[ "$EUID" -eq 0 ]]; then
+  if [[ "$_om818_classic_root" -eq 1 ]]; then
     REPLY="${_om818_classic_s[root]}"
   else
     REPLY="${_om818_classic_s[user]}"

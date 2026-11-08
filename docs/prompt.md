@@ -7,18 +7,18 @@ What each part of the prompt means, and how to change it.
 12:34 ⚙1 $
 ```
 
-| Part                  | Meaning                                                  | Color key   |
-| --------------------- | -------------------------------------------------------- | ----------- |
-| `✔` / `✘1`            | the last command succeeded / failed, with its exit code  | `ok`, `err` |
-| `3s`                  | how long it took, from 3 s up                            | `duration`  |
-| `(drop:dev venv:api)` | the [environments](#environments) you're in              | `env`       |
-| `nat`                 | the user; `@host` is added over SSH, as root, under sudo | `user`      |
-| `~/Repo/api`          | the current folder                                       | `path`      |
-| `[main↑1\|●1✚2…3]`    | [git](#git): the branch, then the changes                | `git_*`     |
-| `{todo}`              | your [indicators](#indicators)                           | `indicator` |
-| `12:34`               | the clock                                                | `date`      |
-| `⚙1`                  | background jobs, when there are some                     | `jobs`      |
-| `$`                   | `#` as root                                              |             |
+| Part                  | Meaning                                                  | Color key      |
+| --------------------- | -------------------------------------------------------- | -------------- |
+| `✔` / `✘1`            | the last command succeeded / failed, with its exit code  | `ok`, `err`    |
+| `3s`                  | how long it took, from 3 s up                            | `duration`     |
+| `(drop:dev venv:api)` | the [environments](#environments) you're in              | `env`          |
+| `nat`                 | the user; `@host` is added over SSH, as root, under sudo | `user`, `root` |
+| `~/Repo/api`          | the current folder                                       | `path`         |
+| `[main↑1\|●1✚2…3]`    | [git](#git): the branch, then the changes                | `git_*`        |
+| `{todo}`              | your [indicators](#indicators)                           | `indicator`    |
+| `12:34`               | the clock                                                | `date`         |
+| `⚙1`                  | background jobs, when there are some                     | `jobs`         |
+| `$`                   | `#` as root                                              |                |
 
 A failed pipeline shows each command's code (`✘1|0`); a command stopped by Ctrl+C shows `✘INT`.
 

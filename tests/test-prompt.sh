@@ -76,6 +76,23 @@ function test_colors() {
   assert_output_contains '\001\E[33m\002~'
 }
 
+function test_account_colors() {
+  local user
+  user="$(id -un)"
+  # user@host in one color: the user's, or root's as root (EUID can't be faked: the theme's
+  # flag), then #
+  install
+  zsh_i SSH_CONNECTION='1 2 3 4' 'cd ~; prompt_om818-classic_precmd; print -r -- "$PROMPT"'
+  assert_output_contains '%B%F{202}%n@'
+  zsh_i SSH_CONNECTION='1 2 3 4' 'cd ~; _om818_classic_root=1; prompt_om818-classic_precmd
+    print -r -- "$PROMPT"'
+  assert_output_contains '%B%F{red}%n@'
+  assert_output_contains ' #'
+  bash_i SSH_CONNECTION='1 2 3 4' 'cd ~; _om818_classic_root=1; prompt_om818-classic_precmd
+    printf "%q\n" "$_om818_ps1"'
+  assert_output_contains '\001\E[1m\002\001\E[31m\002'"${user}@"
+}
+
 function test_basic_mode_is_automatic() {
   local shell
   # The C locale (also what a locale the system lacks, e.g. sent by an SSH client, falls back to,

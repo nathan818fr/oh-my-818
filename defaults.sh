@@ -107,9 +107,8 @@ om818_prompt_basic=auto
 # Pastel colors with a meaning for git: lavender branch, mint staged, sand changed, coral
 # conflicts, sky ahead/behind, grey untracked, stashes and brackets.
 typeset -gA om818_prompt_colors=(
-  [user]='bold 202'
-  [host]='bold 202'
-  [root]=red
+  [user]='bold 202' # user@host
+  [root]='bold red' # user@host, as root
   [path]=178
   [date]=8
   [ok]=green
@@ -135,7 +134,6 @@ typeset -gA om818_prompt_colors=(
 # Basic mode: 8 colors
 typeset -gA om818_prompt_colors_basic=(
   [user]='bold yellow'
-  [host]='bold yellow'
   [path]=yellow
   [date]=default
   [indicator]=magenta
