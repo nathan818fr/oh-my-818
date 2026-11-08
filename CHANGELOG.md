@@ -3,7 +3,7 @@
 What changes for you in each release, newest first: `om818 update` shows the sections of the
 releases it installs.
 
-## Unreleased
+## v0.2.0
 
 - `om818_prompt_git=off` turns git status off: no gitstatusd download, nothing started in shells.
   gitstatusd is also no longer downloaded, nor flagged by `om818 status`, when nothing else uses
