@@ -39,7 +39,8 @@ shell's own.
 
 ## Terminal title
 
-The command running, else the current folder (with the host over SSH). `om818_title=off`.
+The command running, else the current folder, with the host when the prompt shows it
+(`om818_prompt_host`). `om818_title=off`.
 
 ## Clipboard
 

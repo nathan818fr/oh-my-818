@@ -21,10 +21,10 @@ It also copies your history (`~/.zsh_history`, `~/.bash_history`) to
 `~/.local/state/zsh/history` and `~/.local/state/bash/history` (where the Arch wiki's XDG page
 puts them). A history file your startup files set with `HISTFILE` (e.g. `~/.histfile`) isn't
 copied: the installer names the startup file, with the command to copy it. It also downloads
-gitstatusd, the helper behind the
-prompt's git status. The commands of the terminal running the installer are saved by its shell
-when it exits or restarts, after that copy: they stay in `~/.bash_history` (or `~/.zsh_history`)
-only.
+gitstatusd, the helper behind the prompt's git status, unless nothing uses it
+([git status](prompt.md#git)). The commands of the terminal running the installer are saved by
+its shell when it exits or restarts, after that copy: they stay in `~/.bash_history` (or
+`~/.zsh_history`) only.
 
 ### zsh's files move to `~/.config/zsh`
 

@@ -15,7 +15,7 @@ om818_history_share=off  # zsh only; on: other terminals' commands at once (off:
 om818_keys=on            # Up/Down search the history for what is typed, Ctrl+arrows by word…
 om818_completion=on      # Tab completion, ignoring case (bash: the system's bash-completion)
 om818_zsh_completions=on # zsh: extra completions from zsh-users/zsh-completions
-om818_title=on           # terminal title: the command, else the folder (and the host over SSH)
+om818_title=on           # terminal title: the command, else the folder (host as in the prompt)
 om818_clipboard=on       # clipcopy and clippaste commands: macOS, WSL, Wayland, X11, else tmux
 
 # on: startup files read-only, so that installers can't add lines to them (then: om818 install)
