@@ -1220,7 +1220,8 @@ function test_temp_exit_after_the_folder_went() {
   mkdir -- "${SANDBOX}/t/sessions"
   bash_i OM818_TEMP="${SANDBOX}/t" 'rm -rf -- "$OM818_TEMP"; SECONDS=0; _om818_temp_exit
     echo "took=$SECONDS"'
-  assert_output_contains 'took=0'
+  # (no 2 s wait: $SECONDS counts whole seconds, so a fast run can still read 1)
+  assert_output_matches 'took=[01]$'
 }
 
 # A startup file with bytes of another encoding (Latin-1) and a NUL: uninstall keeps every one of
