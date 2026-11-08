@@ -14,6 +14,7 @@ releases it installs.
 - `om818 status` and new terminals report an unknown `om818_theme` (it passed as "ok").
 - `om818_integrations_auto=off` keeps every integration off unless set to `on`, also those of
   later releases.
+- `om818 status` lists the tools the `xdg` integration redirects.
 
 ## v0.1.0
 

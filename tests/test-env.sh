@@ -274,6 +274,8 @@ function test_your_own_variables_win() {
   run GOPATH=/mine sh -c '. "$HOME/'"$ENV_FILE"'"; echo "$GOPATH"'
   assert_output_eq '/mine'
   run GOPATH=/mine "${SANDBOX}/home/.local/share/om818/bin/om818" status
+  # (go not counted as redirected; docker is, except on macOS)
+  assert_output_contains 'redirected: cargo, rustup, gradle, npm'
   assert_output_contains 'left as you set them: GOPATH'
   # One session: the environment, then GOPATH's integration off and the environment again
   run GOPATH=/mine sh -c '. "$HOME/'"$ENV_FILE"'"

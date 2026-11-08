@@ -241,9 +241,13 @@ function test_integrations_auto_off() {
   mkdir -p -- "${SANDBOX}/home/.cache/om818/gitstatus"
   : >"${SANDBOX}/home/.cache/om818/gitstatus/gitstatusd-${daemon}"
   home_file .config/om818/config.sh 'om818_integrations_auto=off
-om818_mise=on'
+om818_mise=on
+om818_xdg=on
+om818_xdg_go=on'
   run "${SANDBOX}/home/${OM818}" status
   assert_output_contains '  mise              on   om818_mise=on, found'
+  # Which xdg tools that leaves redirected
+  assert_output_contains '  xdg               on   om818_xdg=on; redirected: go'
   assert_output_contains \
     '  direnv            off  om818_integrations_auto=off (om818_direnv=auto)'
   # Off on purpose: nothing to fix

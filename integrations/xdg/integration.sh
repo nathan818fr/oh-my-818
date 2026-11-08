@@ -14,11 +14,26 @@ om818_integration_env() {
   _om818_xdg_each _om818_xdg_env
 }
 
-# For `om818 status`: the variables the user set themselves (they win over these defaults)
+# For `om818 status`: the tools redirected (per tool: om818_xdg_<tool>, its old folder), and the
+# variables the user set themselves (they win over these defaults)
 om818_integration_note() {
-  local names
+  local tools names
+  tools="$(_om818_xdg_each _om818_xdg_redirected)"
+  tools="$(printf '%s' "${tools% }" | sed 's/ /, /g')"
+  printf 'redirected: %s' "${tools:-none}"
   names="$(_om818_xdg_each _om818_xdg_own)"
-  if [ -n "$names" ]; then printf 'left as you set them: %s\n' "${names% }"; fi
+  if [ -n "$names" ]; then printf '; left as you set them: %s' "${names% }"; fi
+  printf '\n'
+}
+
+# Print the tool's name when its variables point to the new location: not when only its old one
+# exists, nor when the user set them
+# usage: _om818_xdg_redirected <tool> <old location>
+_om818_xdg_redirected() {
+  _om818_xdg_main
+  if [ -e "$2" ] && [ ! -e "$_om818_xdg_v" ]; then return 0; fi
+  if [ -n "$(_om818_xdg_own "$1" "$2")" ]; then return 0; fi
+  printf '%s ' "$1"
 }
 
 # Print the names of a tool's variables set to something else than its row's value
