@@ -223,6 +223,8 @@ function test_gitstatusd_not_used() {
     reason="$config"
     if [[ "$config" == 'om818_starship=on' ]]; then reason='starship draws the prompt'; fi
     home_file .config/om818/config.sh "$config"
+    # (as a new terminal does: env.sh may be from the same second, which sh can't tell older)
+    run "${SANDBOX}/home/${OM818}" env --quiet
     run "${SANDBOX}/home/${OM818}" status
     assert_output_contains "  gitstatusd   not used (${reason})"
     assert_output_contains \
@@ -244,6 +246,8 @@ function test_integrations_auto_off() {
 om818_mise=on
 om818_xdg=on
 om818_xdg_go=on'
+  # (as a new terminal does: env.sh may be from the same second, which sh can't tell older)
+  run "${SANDBOX}/home/${OM818}" env --quiet
   run "${SANDBOX}/home/${OM818}" status
   assert_output_contains '  mise              on   om818_mise=on, found'
   # Which xdg tools that leaves redirected
