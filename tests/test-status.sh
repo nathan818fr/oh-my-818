@@ -85,10 +85,12 @@ function test_reports_config_mistakes() {
 
   # A wrong value, a typo inside a condition
   home_file .config/om818/config.sh 'om818_history=no
+om818_theme=classic
 if true; then om818_updat=off; fi'
   run "${SANDBOX}/home/${OM818}" status
   assert_output_contains 'unknown settings: om818_updat'
   assert_output_contains 'invalid values: om818_history=no (on or off)'
+  assert_output_contains 'om818_theme=classic (om818-classic or off)'
   # A config the shell can't read: its error, with the line
   home_file .config/om818/config.sh 'om818_prompt_colours[path]=33'
   run "${SANDBOX}/home/${OM818}" status

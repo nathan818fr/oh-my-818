@@ -11,6 +11,7 @@ releases it installs.
 - As root, the whole `root@host` is bold red (it was a red name and an orange host). The color
   keys are now by account: `user` and `root` each color `user@host`; `host` is gone.
 - `om818_completion=off` also turns `tool_completions` off (completions nothing would load).
+- `om818 status` and new terminals report an unknown `om818_theme` (it passed as "ok").
 - `om818_integrations_auto=off` keeps every integration off unless set to `on`, also those of
   later releases.
 

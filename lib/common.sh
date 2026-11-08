@@ -232,9 +232,9 @@ config_defaults() {
 
 # Print the problems of the user's config in one line (nothing when there are none): unknown
 # settings (assigned anywhere, also in conditions; not in defaults.sh) and invalid values of
-# on/off/auto settings (from their default's kind)
+# on/off/auto settings (from their default's kind), and of om818_theme (a theme's folder, or off)
 config_problems() {
-  local names name unknown='' invalid='' defaults default value
+  local names name unknown='' invalid='' defaults default value themes dir
   if [ ! -r "$OM818_CONFIG" ]; then return 0; fi
   names="$(grep -o 'om818_[a-z0-9_]*\(\[[^]]*\]\)\{0,1\}+\{0,1\}=' "$OM818_CONFIG" |
     sed 's/[[+=].*//' | sort -u)"
@@ -243,6 +243,21 @@ config_problems() {
   for name in $names; do
     if ! printf '%s\n' "$defaults" | grep -q "^${name} "; then
       unknown="${unknown} ${name}"
+      continue
+    fi
+    if [ "$name" = 'om818_theme' ]; then
+      value="$(setting "$name")"
+      case "$value" in
+      off) continue ;;
+      '' | *[!a-z0-9_-]*) ;;
+      *) if [ -d "${OM818_DIR}/modules/shell/themes/${value}" ]; then continue; fi ;;
+      esac
+      themes=''
+      for dir in "${OM818_DIR}"/modules/shell/themes/*/; do
+        dir="${dir%/}"
+        themes="${themes}${dir##*/}, "
+      done
+      invalid="${invalid} ${name}=${value} (${themes%, } or off)"
       continue
     fi
     default="$(printf '%s\n' "$defaults" | sed -n "s/^${name} //p")"
