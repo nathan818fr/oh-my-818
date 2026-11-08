@@ -2,7 +2,8 @@
 # The interactive part of the integrations, then the user's shell.d files (code valid in zsh and
 # bash). Which integrations are on comes from the generated environment (om818_integrations:
 # name:tool pairs, mise first); here, only whether the tool is installed is checked (tools come
-# and go, e.g. with mise), and the setting again: config.sh may turn one off in one shell only.
+# and go, e.g. with mise), and the setting again: config.sh may turn one off in one shell only
+# (also with om818_integrations_auto=off, where auto means off).
 # Each one's interactive.<shell> is sourced, else its interactive.sh.
 
 # Set REPLY to a binary's path, its links resolved: Nix and Guix profiles link into a store whose
@@ -120,7 +121,10 @@ while [[ "$_om818_rest" == *' '* ]]; do
   _om818_tool="${_om818_name##*:}"
   _om818_name="${_om818_name%%:*}"
   eval "_om818_mode=\"\${om818_${_om818_name}:-}\""
-  if [[ "$_om818_mode" == 'off' ]]; then continue; fi
+  if [[ "$_om818_mode" == 'off' ||
+    ("$_om818_mode" == 'auto' && "$om818_integrations_auto" == 'off') ]]; then
+    continue
+  fi
   if [[ -n "$_om818_tool" ]] && ! _om818_which "$_om818_tool"; then continue; fi
   _om818_file="${OM818_DIR}/integrations/${_om818_name}/interactive"
   if [[ -r "${_om818_file}.${om818_shell}" ]]; then

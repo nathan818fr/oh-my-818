@@ -24,7 +24,8 @@
 # its own globals are named _om818_<name>_*, those only needed while starting unset after use.
 #
 # Its setting is om818_<name> (auto, on or off), with its default in defaults.sh's Integrations
-# section: auto for integrations that only add things, off for those replacing a behavior.
+# section: auto for integrations that only add things, off for those replacing a behavior. With
+# om818_integrations_auto=off, auto means off (integration_auto_off).
 
 integration_names() {
   local dir
@@ -33,6 +34,12 @@ integration_names() {
     dir="${dir%/}"
     printf '%s\n' "${dir##*/}"
   done
+}
+
+# Whether integrations set to auto stay off (om818_integrations_auto=off): only an explicit on
+# turns one on, so those added by later releases stay off too
+integration_auto_off() {
+  [ "$(setting om818_integrations_auto)" = 'off' ]
 }
 
 # shellcheck disable=SC2034 # read by integration_eval and the callers
@@ -68,7 +75,13 @@ integration_eval() {
     _OM818_I_PROBLEM=1
     return 0
     ;;
-  auto | on) ;;
+  auto)
+    if integration_auto_off; then
+      _OM818_I_REASON="om818_integrations_auto=off (om818_${1}=auto)"
+      return 0
+    fi
+    ;;
+  on) ;;
   *)
     _OM818_I_REASON="invalid setting om818_${1}=${_OM818_I_MODE} (auto, on or off)"
     _OM818_I_PROBLEM=1

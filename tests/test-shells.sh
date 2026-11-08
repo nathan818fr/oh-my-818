@@ -122,6 +122,23 @@ if [ -n "${BASH_VERSION:-}" ]; then om818_direnv=off; fi'
   done
 }
 
+function test_integrations_auto_off_in_one_shell() {
+  local shell
+  # Read by each shell too: config.sh may set it in one shell only
+  fake_tool direnv 'printf "%s\n" "direnv_args=\"$*\""'
+  home_file .config/om818/config.sh \
+    'if [ -n "${BASH_VERSION:-}" ]; then om818_integrations_auto=off; fi'
+  install
+  for shell in zsh bash; do
+    shell_i "$shell" 'printf "%s\n" "direnv=${direnv_args:-}"'
+    if [[ "$shell" == 'zsh' ]]; then
+      assert_output_eq 'direnv=hook zsh'
+    else
+      assert_output_eq 'direnv='
+    fi
+  done
+}
+
 function test_tool_init_is_cached() {
   local shell
   # direnv's init script, recording each run of direnv

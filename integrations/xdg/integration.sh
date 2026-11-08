@@ -3,11 +3,11 @@
 # ~/.config, ~/.local/share, ~/.cache instead of their own dot-folder in HOME. A tool is redirected
 # unless only its old location exists: a fresh machine starts clean, a tool already in use stays
 # where it is (nothing moves by itself: `om818 status` shows how). Each tool can be turned off
-# alone (om818_xdg_<tool>=off). On macOS, it also turns off ~/.zsh_sessions
-# (om818_xdg_zsh_sessions=off keeps them).
+# alone (om818_xdg_<tool>=off); with om818_integrations_auto=off, only those set to on are
+# redirected. On macOS, it also turns off ~/.zsh_sessions (om818_xdg_zsh_sessions=off keeps them).
 
 om818_integration_env() {
-  if [ "$(uname -s)" = 'Darwin' ] && [ "$(setting om818_xdg_zsh_sessions)" != 'off' ]; then
+  if [ "$(uname -s)" = 'Darwin' ] && _om818_xdg_on zsh_sessions; then
     # Apple's Terminal keeps a copy of the history of each window there
     env_set SHELL_SESSIONS_DISABLE 1
   fi
@@ -53,7 +53,7 @@ _om818_xdg_each() {
   _om818_xdg_rows=''
   while read -r tool var value old bin; do
     case "$tool" in '' | '#'*) continue ;; esac
-    if [ "$(setting "om818_xdg_${tool}")" = 'off' ]; then continue; fi
+    if ! _om818_xdg_on "$tool"; then continue; fi
     # Docker Desktop, a desktop app that reads no env.sh, keeps ~/.docker
     if [ "$tool" = 'docker' ] && [ "$os" = 'Darwin' ]; then continue; fi
     if [ "$tool" != "$current" ]; then
@@ -70,6 +70,15 @@ _om818_xdg_each() {
 "
   done <"${OM818_DIR}/integrations/xdg/tools.list"
   if [ -n "$current" ]; then "$fn" "$current" "$current_old"; fi
+}
+
+# Whether a tool's om818_xdg_<tool> turns it on: not off, nor auto under om818_integrations_auto=off
+# usage: _om818_xdg_on <tool>
+_om818_xdg_on() {
+  case "$(setting "om818_xdg_${1}")" in
+  off) return 1 ;;
+  auto) ! integration_auto_off ;;
+  esac
 }
 
 # Set _om818_xdg_v to a value of tools.list, expanded (no fork: called for each value)

@@ -4,6 +4,15 @@ oh-my-818 sets up these tools when they are installed. Each has a setting, `om81
 `auto` (on when the tool is found), `on` or `off`. Those that replace something you know (a
 key, a command, the prompt) are off until you turn them on. `om818 status` shows each one and why.
 
+To turn on only the integrations you name, set `om818_integrations_auto=off`: `auto` then means
+off, so only those set to `on` run, also the integrations that later releases add.
+
+```sh
+# config.sh
+om818_integrations_auto=off
+om818_mise=on
+```
+
 | Integration        | Default | What it does                                                    |
 | ------------------ | ------- | --------------------------------------------------------------- |
 | `mise`             | auto    | activates mise, and puts its shims on PATH                      |
@@ -62,7 +71,8 @@ move it. A variable you set yourself (e.g. `GOPATH` in `~/.profile` or `env.d/`)
 `om818_xdg_go=off` then, else `~/.local/share/go/bin` stays on PATH. Go's
 module cache goes to `~/.cache/go/mod`; on macOS, docker keeps `~/.docker` (Docker Desktop), and
 zsh no longer writes `~/.zsh_sessions` (`om818_xdg_zsh_sessions=off` keeps it).
-`om818_xdg_<tool>=off` leaves one tool alone.
+`om818_xdg_<tool>=off` leaves one tool alone. With `om818_integrations_auto=off`, set
+`om818_xdg=on` and `om818_xdg_<tool>=on` for each tool to redirect.
 
 ## fzf
 

@@ -90,8 +90,9 @@ function main() {
 }
 
 # Settings and integrations share the om818_ namespace: each setting is defined once in
-# defaults.sh; the Integrations section holds exactly one om818_<name> per integration (plus the
-# xdg integration's om818_xdg_<tool>, one per tool of its list); integration names are
+# defaults.sh; the Integrations section holds exactly one om818_<name> per integration (plus
+# om818_integrations_auto, and the xdg integration's om818_xdg_<tool>, one per tool of its list);
+# integration names are
 # identifiers, none named like oh-my-818's own variables and functions
 function check_setting_names() {
   local names dups dir name section tool
@@ -106,7 +107,8 @@ function check_setting_names() {
     return 1
   fi
   section="$(sed -n '/^### Integrations/,/^### /p' defaults.sh |
-    grep -oE '^om818_[a-z0-9_]+=' | sed -E 's/^om818_//; s/=$//' | grep -v '^xdg_' | sort)"
+    grep -oE '^om818_[a-z0-9_]+=' | sed -E 's/^om818_//; s/=$//' |
+    grep -vE '^(xdg_|integrations_auto$)' | sort)"
   for dir in integrations/*/; do
     name="$(basename -- "$dir")"
     integrations+=("$name")

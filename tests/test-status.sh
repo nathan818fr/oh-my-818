@@ -229,6 +229,25 @@ function test_gitstatusd_not_used() {
   done
 }
 
+function test_integrations_auto_off() {
+  local daemon
+  fake_tool mise
+  fake_tool direnv
+  install
+  # gitstatusd, as the install downloads it (the tests don't download)
+  daemon="$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)"
+  mkdir -p -- "${SANDBOX}/home/.cache/om818/gitstatus"
+  : >"${SANDBOX}/home/.cache/om818/gitstatus/gitstatusd-${daemon}"
+  home_file .config/om818/config.sh 'om818_integrations_auto=off
+om818_mise=on'
+  run "${SANDBOX}/home/${OM818}" status
+  assert_output_contains '  mise              on   om818_mise=on, found'
+  assert_output_contains \
+    '  direnv            off  om818_integrations_auto=off (om818_direnv=auto)'
+  # Off on purpose: nothing to fix
+  if [[ "$OUTPUT" != *$'\n\nAll good.' ]]; then fail 'not all good'; fi
+}
+
 function test_update_file_runs_nothing() {
   install
   # shellcheck disable=SC2016 # written as is

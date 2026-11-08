@@ -33,6 +33,9 @@ om818_sandboxes=(drop container)
 
 ### Integrations: auto (on when the tool is found), on, or off
 
+# off: auto means off, so only the integrations set to on run (also those of later releases, and
+# each om818_xdg_<tool>: set om818_xdg=on and om818_xdg_<tool>=on for each tool)
+om818_integrations_auto=on
 # Only adding things, auto by default:
 om818_mise=auto             # mise: activation, and its shims for scripts, IDEs and desktop apps
 om818_podman=auto           # Docker clients (docker, compose, IDEs) use podman (Linux, no Docker)
@@ -43,6 +46,7 @@ om818_1password=auto        # 1Password CLI shell plugins (op plugin init)
 om818_tool_completions=auto # completions generated for tools shipping none (gh, rg, fd, uv…)
 # Tools' files in ~/.config, ~/.local/share, ~/.cache instead of a hidden folder in your home
 # folder, unless only their old folder exists; on macOS, no ~/.zsh_sessions. Per tool: auto or off
+# (on: the same as auto, and needed with om818_integrations_auto=off)
 om818_xdg=auto
 om818_xdg_cargo=auto
 om818_xdg_rustup=auto

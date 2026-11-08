@@ -72,6 +72,20 @@ function test_xdg_redirects_only_without_the_old_folder() {
   fi
 }
 
+function test_integrations_auto_off() {
+  # auto means off: only the integrations (and xdg tools) set to on, whatever later releases add
+  fake_tool mise
+  fake_tool direnv
+  home_file .config/om818/config.sh 'om818_integrations_auto=off
+om818_mise=on
+om818_xdg=on
+om818_xdg_go=on'
+  install
+  run sh -c '. "$HOME/'"$ENV_FILE"'"
+    echo "$om818_integrations go=${GOPATH:-} cargo=${CARGO_HOME:-}"'
+  assert_output_eq "mise:mise go=${SANDBOX}/home/.local/share/go cargo="
+}
+
 function test_podman_for_docker_clients() {
   fake_tool podman
   home_file .config/om818/config.sh 'om818_podman=on'
