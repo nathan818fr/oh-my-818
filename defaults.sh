@@ -79,6 +79,8 @@ om818_prompt_duration_min=3    # seconds a command must take to show its duratio
 om818_prompt_indicators=()
 typeset -gA om818_prompt_indicator_colors=() # e.g. om818_prompt_indicator_colors[todo]=red
 # Git
+# off: no git status, and its helper (gitstatusd, downloaded by om818 install) isn't downloaded
+om818_prompt_git=on
 # Folders without git status: patterns matched against the whole current folder, quoted
 # (unquoted, zsh fails when they match no file), e.g. ('/mnt/*' '~/big-repo*')
 om818_prompt_git_ignore=()

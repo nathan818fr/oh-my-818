@@ -210,6 +210,25 @@ function test_no_move_advised_for_a_folder_the_user_set() {
 
 # The update file's check time, read as a number only: nothing in it runs, in status nor in a
 # starting shell (bash runs a $(…) in the subscript of a variable's name)
+function test_gitstatusd_not_used() {
+  local config reason
+  fake_tool starship
+  install
+  # A gitstatusd downloaded before: left, listed as unused. Git status off, no theme, or starship
+  # drawing the prompt: nothing uses it, nothing to fix
+  mkdir -p -- "${SANDBOX}/home/.cache/om818/gitstatus"
+  for config in 'om818_prompt_git=off' 'om818_theme=off' 'om818_starship=on'; do
+    reason="$config"
+    if [[ "$config" == 'om818_starship=on' ]]; then reason='starship draws the prompt'; fi
+    home_file .config/om818/config.sh "$config"
+    run "${SANDBOX}/home/${OM818}" status
+    assert_output_contains "  gitstatusd   not used (${reason})"
+    assert_output_contains \
+      "~/.cache/om818/gitstatus: unused (${reason}): rm -r ~/.cache/om818/gitstatus"
+    if [[ "$OUTPUT" != *$'\n\nAll good.' ]]; then fail "not all good with ${config}"; fi
+  done
+}
+
 function test_update_file_runs_nothing() {
   install
   # shellcheck disable=SC2016 # written as is

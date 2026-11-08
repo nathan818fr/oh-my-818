@@ -4,14 +4,17 @@
 
 source -- "${OM818_DIR}/modules/${om818_shell}/prompt.${om818_shell}"
 # gitstatusd is downloaded by `om818 install` (also run by updates), never by a starting shell:
-# offline, that would wait on the network at every start
-GITSTATUS_CACHE_DIR="${_om818_cache_dir}/gitstatus"
-GITSTATUS_AUTO_INSTALL=0
-if [[ "$om818_shell" == 'zsh' ]]; then
-  # shellcheck source=/dev/null # zsh code
-  source -- "${OM818_DIR}/vendor/gitstatus/gitstatus.plugin.zsh"
-else
-  source -- "${OM818_DIR}/vendor/gitstatus/gitstatus.plugin.sh"
+# offline, that would wait on the network at every start. Not loaded with om818_prompt_git=off
+# (the theme then shows no git segment)
+if [[ "$om818_prompt_git" != 'off' ]]; then
+  GITSTATUS_CACHE_DIR="${_om818_cache_dir}/gitstatus"
+  GITSTATUS_AUTO_INSTALL=0
+  if [[ "$om818_shell" == 'zsh' ]]; then
+    # shellcheck source=/dev/null # zsh code
+    source -- "${OM818_DIR}/vendor/gitstatus/gitstatus.plugin.zsh"
+  else
+    source -- "${OM818_DIR}/vendor/gitstatus/gitstatus.plugin.sh"
+  fi
 fi
 if [[ -r "${OM818_DIR}/modules/shell/themes/${om818_theme}/theme.sh" ]]; then
   source -- "${OM818_DIR}/modules/shell/themes/${om818_theme}/theme.sh"

@@ -344,9 +344,11 @@ history_import() {
 
 # Download gitstatusd (the prompt's git status helper) into the cache: the shells never download
 # it. gitstatus's install script checks it against the checksum in install.info, but only with a
-# sha256 tool (else it would take the download as is: its curl doesn't check certificates)
+# sha256 tool (else it would take the download as is: its curl doesn't check certificates). Not
+# when nothing uses it (git_status_unused: a copy downloaded before stays, status lists it)
 gitstatusd_download() {
   if [ "${OM818_NO_DOWNLOAD:-}" = 1 ]; then return 0; fi
+  if [ -n "$(git_status_unused)" ]; then return 0; fi
   if ! command -v shasum >/dev/null 2>&1 && ! command -v sha256sum >/dev/null 2>&1 &&
     ! command -v sha256 >/dev/null 2>&1; then
     info "warning: no git status in the prompt: its helper (gitstatusd) can't be checked without"

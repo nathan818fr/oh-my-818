@@ -28,7 +28,7 @@ To check whether oh-my-818 causes a problem, start a shell without it: `zsh -f` 
 - **A tool I installed isn't set up:** `om818 env`, then a new terminal.
 - **Odd symbols in the prompt:** try another font, or `om818_prompt_basic=on`.
 - **No git status in the prompt:** gitstatusd wasn't downloaded (offline at install time): run
-  `om818 install`.
+  `om818 install`. With `om818_prompt_git=off`, git status is off on purpose.
 - **zsh installed, or login shell changed, after oh-my-818:** `om818 install` in a new terminal.
 - **A tutorial mentions `~/.cargo` or `~/go`:** the `xdg` integration put them in
   `~/.local/share/` ([xdg](integrations.md#xdg)).

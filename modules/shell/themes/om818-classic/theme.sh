@@ -92,7 +92,8 @@ function prompt_om818-classic_setup() {
   for name in "${om818_prompt_line1[@]}" "${om818_prompt_line2[@]}"; do
     name="${name#+}"
     if [[ "$name" == 'git' ]]; then
-      _om818_classic_shows_git=1
+      # (om818_prompt_git=off: no gitstatus, so nothing to show)
+      if [[ "$om818_prompt_git" != 'off' ]]; then _om818_classic_shows_git=1; fi
     elif _om818_prompt_has_function "prompt_om818-classic_segment_${name}"; then
       _om818_classic_segments[$name]=1
     else

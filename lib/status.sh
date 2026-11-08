@@ -226,8 +226,11 @@ status_env() {
 }
 
 status_gitstatusd() {
-  local cache="${OM818_CACHE_DIR}/gitstatus" daemon
-  if daemon="$(GITSTATUS_CACHE_DIR="$cache" sh "${OM818_DIR}/vendor/gitstatus/install" -n \
+  local cache="${OM818_CACHE_DIR}/gitstatus" daemon unused
+  unused="$(git_status_unused)"
+  if [ -n "$unused" ]; then
+    printf 'not used (%s)\n' "$unused"
+  elif daemon="$(GITSTATUS_CACHE_DIR="$cache" sh "${OM818_DIR}/vendor/gitstatus/install" -n \
     -- printf '%s\n' 2>/dev/null)"; then
     printf '%s\n' "${daemon%%"
 "*}"
@@ -334,10 +337,11 @@ status_integrations() {
   done
 }
 
-# Old locations left in HOME, which oh-my-818 doesn't use or move: old history files, and those
-# integrations report (e.g. a tool's folder the xdg integration leaves where it is)
+# Old locations left in HOME, which oh-my-818 doesn't use or move: old history files, those
+# integrations report (e.g. a tool's folder the xdg integration leaves where it is), and a
+# gitstatusd nothing uses (git_status_unused)
 status_leftovers() {
-  local out='' file shell name rows
+  local out='' file shell name rows unused
   for shell in zsh bash; do
     file="${HOME}/.${shell}_history"
     # (om818_history=off: the shells' own, in use)
@@ -352,6 +356,12 @@ status_leftovers() {
 "
     fi
   done
+  unused="$(git_status_unused)"
+  if [ -n "$unused" ] && [ -d "${OM818_CACHE_DIR}/gitstatus" ]; then
+    out="${out}$(path_row "${OM818_CACHE_DIR}/gitstatus" "unused (${unused}):" \
+      "rm -r ${OM818_CACHE_DIR}/gitstatus")
+"
+  fi
   for name in $(integration_names); do
     rows="$(
       integration_eval "$name"

@@ -110,6 +110,19 @@ function test_repair() {
   assert_output_eq 'v0.1.0'
 }
 
+function test_unused_gitstatusd_not_downloaded() {
+  # Downloads allowed here: when it is used, the install would try, and say so (no sha256 tool in
+  # the tests, or no curl). Git status off, or no theme (a repair then)
+  home_file .config/om818/config.sh 'om818_prompt_git=off'
+  install OM818_NO_DOWNLOAD=0
+  assert_output_not_contains 'gitstatusd'
+  home_file .config/om818/config.sh 'om818_theme=off'
+  run OM818_NO_DOWNLOAD=0 "${SANDBOX}/home/.local/share/om818/bin/om818" install
+  assert_status 0
+  assert_output_not_contains 'gitstatusd'
+  if [[ -e "${SANDBOX}/home/.cache/om818/gitstatus" ]]; then fail 'gitstatus folder made'; fi
+}
+
 function test_reads_the_config_without_a_recent_bash() {
   # macOS: /bin/bash is 3.2, which can't read defaults.sh's tables
   fake_tool bash 'exit 1'

@@ -79,6 +79,9 @@ om818_prompt_git_count_untracked=off
 om818_prompt_git_ignore=('/mnt/*' '~/big-repo*')   # quoted patterns
 ```
 
+`om818_prompt_git=off` turns git status off: the git segment stays empty, and `om818 install`
+no longer downloads gitstatusd.
+
 ## Colors and symbols
 
 Change one key of a table; the others keep their default:
@@ -109,3 +112,5 @@ It runs before each prompt: keep it fast.
 
 - [starship](https://starship.rs): `om818_starship=on`.
 - Your own (a `PS1`, powerlevel10k…): `om818_theme=off`, then set it in `shell.d/`.
+
+With either one, `om818 install` no longer downloads gitstatusd.

@@ -216,6 +216,22 @@ function test_without_gitstatusd() {
   done
 }
 
+function test_git_status_off() {
+  local shell
+  # om818_prompt_git=off: no gitstatus loaded, nothing started, no git segment, nothing printed,
+  # with git still in the prompt's lines
+  home_file .config/om818/config.sh 'om818_prompt_git=off'
+  install
+  git_ init -q "${SANDBOX}/home/repo"
+  for shell in zsh bash; do
+    shell_i "$shell" 'cd ~/repo; prompt_om818-classic_late_init
+      if typeset -f gitstatus_start >/dev/null; then printf "%s\n" loaded; fi
+      printf "%s\n" "${_om818_classic_shows_git} ${GITSTATUS_CACHE_DIR-unset}"
+      '"${PROMPT_CODE}"
+    assert_output_matches "^0 unset"$'\n'"✔ $(id -un) ~/repo"$'\n'
+  done
+}
+
 function test_indicators() {
   # Text from outside, shown as is (% and $ are prompt syntax), in the order of the setting;
   # one with nothing to show is left out; one that doesn't exist is reported once shell.d is read

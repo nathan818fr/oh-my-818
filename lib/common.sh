@@ -357,6 +357,19 @@ quote() {
   printf "'%s'\n" "${out}${rest}"
 }
 
+# Print why the prompt's git status helper (gitstatusd) isn't used, nothing when it is: git status
+# turned off, no prompt theme, or starship drawing the prompt instead (its integration on)
+git_status_unused() {
+  # shellcheck disable=SC2154 # set by config_load
+  if [ "$om818_prompt_git" = 'off' ]; then
+    printf 'om818_prompt_git=off\n'
+  elif [ "$om818_theme" = 'off' ]; then
+    printf 'om818_theme=off\n'
+  elif (integration_eval starship && [ "$_OM818_I_STATE" = 'on' ]) >/dev/null 2>&1; then
+    printf 'starship draws the prompt\n'
+  fi
+}
+
 # Print the value of a setting (sh has no ${!name})
 setting() {
   eval "printf '%s\n' \"\${${1}:-}\""
